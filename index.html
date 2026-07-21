@@ -62,7 +62,7 @@ background:var(--black);color:var(--gray);text-align:center;padding:30px}
   <div class="bar">
     <img class="logo" src="boosted_logo_h.png" alt="Boosted Company">
     <div class="sp"></div>
-    <div class="hint">Pannello demo · online</div>
+    <div class="hint">Pannello demo</div>
   </div>
 
   <div class="tabs" id="tabs"></div>
@@ -106,16 +106,12 @@ var TABS = [
   ]},
   { id:'parr', name:'Parrucchiere · Salone', staticRoute:'demo-parrucchiere.html', screens:[
       {label:'Cliente · prenota', q:'kiosk=1&vista=cliente',     hint:'prenotazione online'},
-      {label:'Prova look',        q:'kiosk=1&vista=prova',       hint:'taglio, piega e colore (AI)'},
+      {label:'Prova look',        q:'kiosk=1&vista=prova',       hint:'prova taglio, piega e colore (AI)'},
       {label:'Agenda',            q:'kiosk=1&vista=agenda',      hint:'appuntamenti per operatore'},
       {label:'Assistente',        q:'kiosk=1&vista=assistente',  hint:'voce AI che prenota da sola'},
-      {label:'Poltrone',          q:'kiosk=1&vista=poltrone',    hint:'poltrone + scontrino'},
+      {label:'Poltrone',          q:'kiosk=1&vista=poltrone',    hint:'poltrone + scontrino a fine servizio'},
       {label:'Gestionale',        q:'kiosk=1&vista=report',      hint:'incassi giornalieri + listino'},
       {label:'Marketing',         q:'kiosk=1&vista=reputazione', hint:'email e WhatsApp promozionali'},
-  ]},
-  { id:'extra', name:'Materiali', links:[
-      {label:'Assistente chiamate', file:'Demo-Assistente-Chiamate.html', hint:'demo voce AI'},
-      {label:'Listino Enoteca',     file:'Boosted-Enoteca-Prezzi.html',   hint:'esempio listino digitale'},
   ]},
 ];
 
@@ -133,7 +129,7 @@ function liveUrl(d){ return d.live && LIVE[d.live] ? LIVE[d.live].replace(/\/+$/
 
 function renderTabs(){
   tabsEl.innerHTML = TABS.map(function(d){
-    var rdy = d.single || d.staticRoute || d.links || liveUrl(d);
+    var rdy = d.single || d.staticRoute || liveUrl(d);
     return '<button class="tab'+(d.id===active?' on':'')+(rdy?' ready':'')+'" onclick="selectService(\''+d.id+'\')"><span class="led"></span>'+d.name+'</button>';
   }).join('');
 }
@@ -142,16 +138,9 @@ function renderToolbar(){
   var d=svc(active);
   if(d.single){
     toolEl.innerHTML = '<span class="sub on" style="cursor:default">Presentazione animata</span>'
-      + '<span style="color:var(--gray);font-size:12.5px;margin-left:4px">Come funzionano i sistemi, passo-passo</span>'
+      + '<span style="color:var(--gray);font-size:12.5px;margin-left:4px">Come funzionano i tre sistemi, passo-passo</span>'
       + '<div class="sp"></div>'
       + '<a class="act" href="'+d.single+'" target="_blank" rel="noopener">↗ A tutto schermo</a>';
-    return;
-  }
-  if(d.links){
-    toolEl.innerHTML = d.links.map(function(s,i){
-      return '<button class="sub'+(i===page[active]?' on':'')+'" onclick="selectPage('+i+')">'+s.label+'<small>'+s.hint+'</small></button>';
-    }).join('') + '<div class="sp"></div>'
-      + '<a class="act" href="'+d.links[page[active]].file+'" target="_blank" rel="noopener">↗ A tutto schermo</a>';
     return;
   }
   var subs=d.screens.map(function(s,i){
@@ -177,7 +166,6 @@ function loadView(){
   var d=svc(active), stage=document.querySelector('.stage');
   stage.classList.remove('mob');
   if(d.single){ setSrc(d.single, 'Carico la presentazione…'); return; }
-  if(d.links){ setSrc(d.links[page[active]].file, 'Carico…'); return; }
   var s=d.screens[page[active]];
   stage.classList.toggle('mob', !!(s && s.mobile));
   if(d.staticRoute){ setSrc(d.staticRoute+(s.q?('?'+s.q):''), 'Carico la demo…'); return; }
