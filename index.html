@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="it"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boosted · Pannello demo</title>
+<link rel="icon" href="boosted_icon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--black:#08090A;--bar:#0d0e12;--surface:#121319;--surface2:#171922;--border:rgba(201,169,233,.16);
+--soft:rgba(255,255,255,.07);--lilac:#C9A9E9;--purple:#8B6FB8;--white:#F7F8F8;--gray:#8A8F98;
+--grad:linear-gradient(150deg,#C9A9E9,#8B6FB8);--green:#40c878}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,Arial,sans-serif;background:var(--black);color:var(--white);
+display:flex;flex-direction:column;-webkit-font-smoothing:antialiased;overflow:hidden}
+
+/* header */
+.bar{display:flex;align-items:center;gap:12px;padding:11px 18px;background:var(--bar);border-bottom:1px solid var(--soft);flex:none}
+.logo{height:30px;width:auto;display:block}
+.bar .sp{flex:1}
+.bar .hint{font-size:11px;color:var(--gray);letter-spacing:.04em}
+
+/* service tabs */
+.tabs{display:flex;gap:6px;padding:10px 14px 0;background:var(--bar);flex:none;overflow-x:auto}
+.tab{position:relative;display:flex;align-items:center;gap:9px;font-family:inherit;font-size:14px;font-weight:600;
+color:var(--gray);background:transparent;border:1px solid transparent;border-bottom:none;padding:11px 18px;border-radius:11px 11px 0 0;
+cursor:pointer;transition:.15s;white-space:nowrap}
+.tab:hover{color:var(--white)}
+.tab.on{color:var(--white);background:linear-gradient(180deg,rgba(201,169,233,.12),var(--black) 60%);border-color:var(--border);box-shadow:inset 0 2px 0 0 var(--lilac)}
+.tab .led{width:8px;height:8px;border-radius:50%;background:var(--gray);transition:.2s}
+.tab.ready .led{background:var(--green);box-shadow:0 0 0 3px rgba(64,200,120,.16)}
+
+/* subtab toolbar */
+.toolbar{display:flex;align-items:center;gap:8px;padding:11px 14px;background:var(--black);border-bottom:1px solid var(--soft);flex:none;flex-wrap:wrap}
+.sub{font-family:inherit;font-size:12.5px;font-weight:600;color:var(--gray);background:var(--surface);border:1px solid var(--soft);
+padding:8px 13px;border-radius:9px;cursor:pointer;transition:.15s;white-space:nowrap}
+.sub:hover{color:var(--white);border-color:var(--border)}
+.sub.on{color:var(--black);background:var(--grad);border-color:transparent}
+.sub small{opacity:.7;font-weight:500;margin-left:5px}
+.sub.on small{color:#3a2b50;opacity:.85}
+.toolbar .sp{flex:1}
+.act{font-family:inherit;font-size:12.5px;font-weight:700;color:var(--white);background:var(--surface2);border:1px solid var(--border);
+padding:8px 13px;border-radius:9px;cursor:pointer;transition:.15s;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.act:hover{background:#1e2030}
+
+/* viewport */
+.stage{flex:1;position:relative;background:#fff;min-height:0}
+#view{width:100%;height:100%;border:0;display:block;background:#fff}
+.stage.mob{background:radial-gradient(420px 320px at 50% 30%,rgba(139,111,184,.14),#0a0b0f);display:flex;align-items:center;justify-content:center}
+.stage.mob #view{width:380px;max-width:90%;height:95%;max-height:800px;border:none;border-radius:44px;background:#000;box-shadow:0 0 0 2px rgba(201,169,233,.22),0 0 0 12px #15161e,0 0 0 13px rgba(255,255,255,.05),0 44px 96px -26px rgba(0,0,0,.95)}
+.over{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+background:var(--black);color:var(--gray);text-align:center;padding:30px}
+.over.show{display:flex}
+.over b{color:var(--white);font-size:17px;font-weight:800}
+.over span{font-size:13.5px;max-width:420px;line-height:1.5}
+.over .act{margin-top:4px}
+.spin{width:30px;height:30px;border-radius:50%;border:3px solid rgba(201,169,233,.25);border-top-color:var(--lilac);animation:rot .8s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+</style></head>
+<body>
+  <div class="bar">
+    <img class="logo" src="boosted_logo_h.png" alt="Boosted Company">
+    <div class="sp"></div>
+    <div class="hint">Pannello demo · online</div>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+  <div class="toolbar" id="toolbar"></div>
+
+  <div class="stage">
+    <iframe id="view" allow="camera; microphone; clipboard-write; fullscreen" referrerpolicy="no-referrer"></iframe>
+    <div class="over" id="over">
+      <div class="spin" id="spin"></div>
+      <b id="over-t">Carico…</b>
+      <span id="over-s"></span>
+      <a id="over-a" class="act" href="#" target="_blank" rel="noopener" style="display:none">↗ Apri</a>
+    </div>
+  </div>
+
+<script>
+/* ===================================================================
+   URL delle versioni LIVE (backend su Vercel).
+   Vuoto = la scheda mostra la presentazione / il messaggio "in arrivo".
+   Compilati nella Fase 2 del deploy.
+   =================================================================== */
+var LIVE = { ecom: "", qr: "" };
+
+var TABS = [
+  { id:'intro', name:'▶ Come funziona', single:'presentazione-boosted.html' },
+  { id:'ecom', name:'Ecommerce', live:'ecom', screens:[
+      {label:'Vetrina cliente', path:'/shop',      hint:'quello che vede il cliente', mobile:true},
+      {label:'Operatori',       path:'/admin',      hint:'gestione ordini'},
+      {label:'Scanner',         path:'/scanner',    hint:'barcode dal telefono', mobile:true},
+      {label:'Titolare',        path:'/gestionale', hint:'incassi e magazzino'},
+      {label:'Marketing',       path:'/marketing',  hint:'PIN 1379 · email + WhatsApp'},
+  ]},
+  { id:'qr', name:'Ordini al tavolo · QR', live:'qr', presentation:'Presentazione-Ordini-QR.html', screens:[
+      {label:'Sito prenotazioni', path:'/demo',       hint:'lato cliente · prenota', mobile:true},
+      {label:'Sala / Staff',      path:'/staff',      hint:'PIN 2468'},
+      {label:'Cucina (KDS)',      path:'/kds',        hint:'schermo comande'},
+      {label:'Cameriere',         path:'/cameriere',  hint:'ordini dal telefono', mobile:true},
+      {label:'Titolare',          path:'/gestionale', hint:'PIN 1379'},
+      {label:'Assistente',        path:'/assistente', hint:'chiamate + messaggi'},
+      {label:'Marketing',         path:'/marketing',  hint:'PIN 1379 · email + WhatsApp'},
+  ]},
+  { id:'parr', name:'Parrucchiere · Salone', staticRoute:'demo-parrucchiere.html', screens:[
+      {label:'Cliente · prenota', q:'kiosk=1&vista=cliente',     hint:'prenotazione online'},
+      {label:'Prova look',        q:'kiosk=1&vista=prova',       hint:'taglio, piega e colore (AI)'},
+      {label:'Agenda',            q:'kiosk=1&vista=agenda',      hint:'appuntamenti per operatore'},
+      {label:'Assistente',        q:'kiosk=1&vista=assistente',  hint:'voce AI che prenota da sola'},
+      {label:'Poltrone',          q:'kiosk=1&vista=poltrone',    hint:'poltrone + scontrino'},
+      {label:'Gestionale',        q:'kiosk=1&vista=report',      hint:'incassi giornalieri + listino'},
+      {label:'Marketing',         q:'kiosk=1&vista=reputazione', hint:'email e WhatsApp promozionali'},
+  ]},
+  { id:'extra', name:'Materiali', links:[
+      {label:'Assistente chiamate', file:'Demo-Assistente-Chiamate.html', hint:'demo voce AI'},
+      {label:'Listino Enoteca',     file:'Boosted-Enoteca-Prezzi.html',   hint:'esempio listino digitale'},
+  ]},
+];
+
+var active = 'intro';
+var page = {};   // id -> indice pagina scelta
+TABS.forEach(function(d){ page[d.id]=0; });
+
+var tabsEl=document.getElementById('tabs'), toolEl=document.getElementById('toolbar');
+var view=document.getElementById('view'), over=document.getElementById('over'),
+    overT=document.getElementById('over-t'), overS=document.getElementById('over-s'),
+    overA=document.getElementById('over-a'), spin=document.getElementById('spin');
+
+function svc(id){ return TABS.find(function(d){return d.id===id}); }
+function liveUrl(d){ return d.live && LIVE[d.live] ? LIVE[d.live].replace(/\/+$/,'') : ''; }
+
+function renderTabs(){
+  tabsEl.innerHTML = TABS.map(function(d){
+    var rdy = d.single || d.staticRoute || d.links || liveUrl(d);
+    return '<button class="tab'+(d.id===active?' on':'')+(rdy?' ready':'')+'" onclick="selectService(\''+d.id+'\')"><span class="led"></span>'+d.name+'</button>';
+  }).join('');
+}
+
+function renderToolbar(){
+  var d=svc(active);
+  if(d.single){
+    toolEl.innerHTML = '<span class="sub on" style="cursor:default">Presentazione animata</span>'
+      + '<span style="color:var(--gray);font-size:12.5px;margin-left:4px">Come funzionano i sistemi, passo-passo</span>'
+      + '<div class="sp"></div>'
+      + '<a class="act" href="'+d.single+'" target="_blank" rel="noopener">↗ A tutto schermo</a>';
+    return;
+  }
+  if(d.links){
+    toolEl.innerHTML = d.links.map(function(s,i){
+      return '<button class="sub'+(i===page[active]?' on':'')+'" onclick="selectPage('+i+')">'+s.label+'<small>'+s.hint+'</small></button>';
+    }).join('') + '<div class="sp"></div>'
+      + '<a class="act" href="'+d.links[page[active]].file+'" target="_blank" rel="noopener">↗ A tutto schermo</a>';
+    return;
+  }
+  var subs=d.screens.map(function(s,i){
+    return '<button class="sub'+(i===page[active]?' on':'')+'" onclick="selectPage('+i+')">'+s.label+'<small>'+s.hint+'</small></button>';
+  }).join('');
+  var cur=d.screens[page[active]];
+  var full = d.staticRoute ? (d.staticRoute+(cur.q?('?'+cur.q):'')) : (liveUrl(d)? liveUrl(d)+cur.path : (d.presentation||'#'));
+  toolEl.innerHTML = subs
+    + '<div class="sp"></div>'
+    + '<button class="act" onclick="reloadView()">↻ Ricarica</button>'
+    + '<a class="act" href="'+full+'" target="_blank" rel="noopener">↗ A tutto schermo</a>';
+}
+
+function showOver(title, msg, link){
+  spin.style.display = link ? 'none' : '';
+  overT.textContent=title; overS.textContent=msg||'';
+  if(link){ overA.style.display=''; overA.href=link.href; overA.textContent=link.text; }
+  else overA.style.display='none';
+  over.classList.add('show');
+}
+
+function loadView(){
+  var d=svc(active), stage=document.querySelector('.stage');
+  stage.classList.remove('mob');
+  if(d.single){ setSrc(d.single, 'Carico la presentazione…'); return; }
+  if(d.links){ setSrc(d.links[page[active]].file, 'Carico…'); return; }
+  var s=d.screens[page[active]];
+  stage.classList.toggle('mob', !!(s && s.mobile));
+  if(d.staticRoute){ setSrc(d.staticRoute+(s.q?('?'+s.q):''), 'Carico la demo…'); return; }
+  // scheda live (ecom/qr)
+  var base=liveUrl(d);
+  if(base){ setSrc(base+s.path, 'Carico la demo live…'); return; }
+  // nessun URL live ancora: mostra messaggio (+ presentazione se disponibile)
+  view.removeAttribute('src');
+  if(d.presentation){
+    showOver('Versione live in arrivo', 'Il gestionale completo (ordini, cucina, incassi) sta per andare online. Intanto guarda la presentazione animata del sistema.',
+      {href:d.presentation, text:'↗ Apri la presentazione'});
+  } else {
+    showOver('Versione live in arrivo', 'La versione funzionante di questo servizio sta per essere pubblicata online.', null);
+  }
+}
+function setSrc(url, loadingMsg){
+  showOver(loadingMsg||'Carico…',''); overA.style.display='none'; spin.style.display='';
+  if(view.getAttribute('src')!==url){ view.setAttribute('src',url); } else { over.classList.remove('show'); }
+}
+view.addEventListener('load', function(){ if(view.getAttribute('src')) over.classList.remove('show'); });
+
+function selectService(id){ active=id; renderTabs(); renderToolbar(); loadView(); }
+function selectPage(i){ page[active]=i; renderToolbar(); loadView(); }
+function reloadView(){ var s=view.getAttribute('src'); if(s){ showOver('Carico…',''); spin.style.display=''; view.setAttribute('src', s); } }
+
+renderTabs(); renderToolbar(); loadView();
+</script>
+</body></html>

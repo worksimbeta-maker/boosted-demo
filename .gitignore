@@ -1,0 +1,7 @@
+# segreti — non committare MAI
+*key*.txt
+.env
+.env.*
+# sistema
+.DS_Store
+node_modules/

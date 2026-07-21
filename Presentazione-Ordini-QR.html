@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boosted · Come funzionano i sistemi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+:root{
+  --black:#08090A;--bar:#0d0e12;--surface:#121319;--surface2:#171922;--card:#0e0f15;
+  --soft:rgba(255,255,255,.07);--border:rgba(201,169,233,.18);
+  --lilac:#C9A9E9;--purple:#8B6FB8;--grad:linear-gradient(150deg,#C9A9E9,#8B6FB8);
+  --text:#F7F8F8;--text2:#AAB0BB;--text3:#9CA2AD;--faint:#6B7280;
+  --green:#3fb874;--amber:#E0962A;--amber-t:#F3C684;--green-t:#bff3d2;--red:#ff7a72;
+  --r-sm:8px;--r-md:12px;--r-lg:16px;--r-xl:22px;
+  --sh-card:0 22px 50px -26px rgba(0,0,0,.85),0 0 0 1px var(--soft),inset 0 1px 0 rgba(255,255,255,.04);
+  --sh-dev:0 50px 92px -30px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.05);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,Arial,sans-serif;background:var(--black);color:var(--text);
+display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1,'cv05' 1}
+
+/* ---------- header ---------- */
+.head{position:relative;z-index:6;display:flex;align-items:center;gap:13px;padding:11px 26px}
+.logo{width:28px;height:28px}
+.head .w{display:flex;flex-direction:column;line-height:1}
+.head .w b{font-size:13px;font-weight:800;letter-spacing:.18em}
+.head .w span{font-size:8px;font-weight:600;letter-spacing:.34em;color:var(--text3);margin-top:4px}
+.switch{margin-left:auto;display:flex;gap:5px;background:var(--surface);border:1px solid var(--soft);padding:4px;border-radius:12px}
+.switch button{font-family:inherit;font-size:12.5px;font-weight:700;color:var(--text3);background:transparent;border:none;padding:8px 15px;border-radius:9px;cursor:pointer;transition:.16s}
+.switch button:hover{color:var(--text)}
+.switch button.on{color:var(--black);background:var(--grad);box-shadow:0 7px 18px -7px rgba(201,169,233,.6)}
+
+/* ---------- flow rail (mappa-percorso) ---------- */
+.rail{position:relative;z-index:6;display:flex;gap:22px;padding:2px 26px 8px;align-items:flex-end;overflow:hidden}
+.rail.hidden{visibility:hidden}
+.actg{display:flex;flex-direction:column;gap:7px}
+.actg .al{font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--text3);padding-left:2px}
+.actg.cur .al{color:var(--lilac)}
+.nodes{display:flex;gap:6px}
+.node{font-family:inherit;display:flex;align-items:center;gap:7px;background:transparent;border:1px solid var(--soft);color:var(--text3);
+font-size:11.5px;font-weight:600;padding:6px 11px 6px 7px;border-radius:999px;cursor:pointer;transition:.18s;white-space:nowrap}
+.node .num{width:17px;height:17px;border-radius:50%;display:grid;place-items:center;font-size:9.5px;font-weight:800;background:var(--surface2);color:var(--text3);transition:.18s}
+.node:hover{color:var(--text);border-color:var(--border)}
+.node.done{color:var(--text2);border-color:var(--soft)}
+.node.done .num{background:var(--purple);color:#1a1226}
+.node.on{color:var(--black);background:var(--grad);border-color:transparent;box-shadow:0 8px 20px -8px rgba(201,169,233,.6)}
+.node.on .num{background:rgba(26,18,38,.25);color:#1a1226}
+.node .nlab{max-width:0;overflow:hidden;opacity:0;transition:.22s}
+.node:hover .nlab{max-width:130px;opacity:1}
+.node{cursor:pointer}
+.node.on .nlab{max-width:120px;opacity:1}
+
+/* ---------- film / stage ---------- */
+.film{position:relative;flex:1;overflow:hidden;cursor:pointer}
+.phint{font-size:10.5px;color:var(--text3);white-space:nowrap;margin-left:8px;opacity:.8}
+.film::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(900px 680px at 66% 44%,rgba(139,111,184,.16),transparent 62%)}
+.film::after{content:"";position:absolute;inset:0;z-index:5;pointer-events:none;box-shadow:inset 0 0 240px 60px rgba(0,0,0,.5)}
+.layer{position:absolute;inset:0;z-index:1;display:grid;place-items:center;opacity:0;will-change:opacity,transform}
+.frame{width:900px;height:350px;display:flex;align-items:center;justify-content:center;gap:56px;position:relative;transform-origin:center}
+.scene{position:relative;display:flex;align-items:center;justify-content:center;min-height:318px;order:2}
+.scene::before{content:"";position:absolute;bottom:4%;left:50%;width:50%;height:26px;transform:translateX(-50%);background:rgba(0,0,0,.55);filter:blur(22px);z-index:-1}
+.scene::after{content:"";position:absolute;bottom:1%;left:50%;width:72%;height:64px;transform:translateX(-50%);background:radial-gradient(ellipse at center,rgba(139,111,184,.32),transparent 72%);filter:blur(34px);z-index:-2;pointer-events:none}
+.badge{position:absolute;top:-6px;left:-6px;width:34px;height:34px;border-radius:50%;background:var(--card);border:1px solid var(--border);display:grid;place-items:center;font-size:13px;font-weight:800;color:var(--lilac);z-index:6;box-shadow:0 8px 18px -8px rgba(0,0,0,.8)}
+
+.cap{order:1;display:flex;flex-direction:column;align-items:flex-start;text-align:left;max-width:340px;padding-left:20px;border-left:2px solid transparent;border-image:var(--grad) 1}
+.kick{display:flex;align-items:center;gap:9px;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--text3)}
+.kick .adot{width:8px;height:8px;border-radius:50%;background:var(--lilac)}
+.cap h2{font-size:clamp(26px,3.2vw,40px);font-weight:700;letter-spacing:-.025em;line-height:1.04;margin:14px 0 12px}
+.cap p{font-size:15px;color:var(--text2);line-height:1.45;max-width:300px}
+
+.anim{will-change:transform,opacity}
+
+/* ---------- cover (apertura / chiusura) ---------- */
+.cover{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;text-align:center;width:100%}
+.cover .clogo{width:62px;height:62px}
+.cover .ck{font-size:12px;font-weight:700;letter-spacing:.32em;text-transform:uppercase;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.cover h1{font-size:clamp(30px,4.6vw,54px);font-weight:800;letter-spacing:-.03em;line-height:1.03;max-width:760px}
+.cover p{font-size:clamp(15px,1.9vw,19px);color:var(--text2);max-width:560px}
+.cover .bl{margin-top:6px;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:var(--text3)}
+
+/* ======================= MOCKUPS ======================= */
+.phone{width:200px;height:330px;border-radius:42px;background:#16171f;border:0;padding:9px;position:relative;box-shadow:var(--sh-dev)}
+.phone::before{content:"";position:absolute;top:15px;left:50%;transform:translateX(-50%);width:78px;height:20px;border-radius:12px;background:#000;z-index:5}
+.scr{position:absolute;inset:9px;border-radius:36px;overflow:hidden;background:linear-gradient(180deg,#15161d,#0e0f15);display:flex;flex-direction:column}
+.sbar{display:flex;justify-content:space-between;align-items:center;padding:9px 18px 4px;font-size:10px;font-weight:600;color:var(--text2)}
+.sbar .r{display:flex;gap:4px;align-items:center}
+.scrtop{padding:8px 14px 9px;font-size:11.5px;font-weight:700;color:var(--text);border-bottom:1px solid var(--soft);display:flex;justify-content:space-between;align-items:center}
+.scrtop .lang{font-size:9.5px;color:var(--text3);font-weight:600;border:1px solid var(--soft);border-radius:5px;padding:2px 6px}
+.catrow{display:flex;gap:5px;padding:9px 12px;overflow:hidden;border-bottom:1px solid var(--soft)}
+.catpill{font-size:10px;font-weight:700;padding:5px 9px;border-radius:var(--r-sm);background:var(--surface2);border:1px solid var(--soft);color:var(--text3);white-space:nowrap}
+.catpill.on{background:rgba(201,169,233,.14);color:var(--lilac);border-color:var(--border)}
+.mItem{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 14px;border-bottom:1px solid var(--soft);font-size:13px;gap:8px;line-height:1.35}
+.mItem b{font-weight:600;display:block}.mItem .al{color:var(--text3);font-size:10px;margin-top:2px}
+.mItem .pz{color:var(--text);font-weight:700;font-size:13px;white-space:nowrap}
+.note{font-size:10.5px;color:var(--amber-t);padding:3px 14px}
+.cartbar{margin-top:auto;display:flex;align-items:center;justify-content:space-between;padding:13px 14px;background:var(--grad);color:#1a1226;font-weight:800;font-size:13px}
+.badge2{display:inline-grid;place-items:center;min-width:21px;height:21px;border-radius:11px;background:#1a1226;color:var(--text);font-size:11px;padding:0 6px}
+.qrbox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;position:relative}
+.qr{width:128px;height:128px;border-radius:14px;background:#fff;position:relative;padding:12px;
+  background-image:radial-gradient(circle,#0e0f15 38%,transparent 40%);background-size:11px 11px;background-position:8px 8px;border:7px solid #fff}
+.fp{position:absolute;width:30px;height:30px;background:#0e0f15;border-radius:4px;box-shadow:inset 0 0 0 4px #0e0f15,inset 0 0 0 9px #fff}
+.fp.tl{top:9px;left:9px}.fp.tr{top:9px;right:9px}.fp.bl{bottom:9px;left:9px}
+.beamline{position:absolute;left:6%;right:6%;height:2px;background:var(--lilac);box-shadow:0 0 14px 3px rgba(201,169,233,.7);top:8%;z-index:2}
+.qrlabel{font-size:11px;color:var(--text3);text-align:center;padding:0 22px}
+.frm{padding:12px 14px;display:flex;flex-direction:column;gap:7px}
+.frm .fl{display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px solid var(--soft)}
+.frm .fl .muted{color:var(--text3)}
+
+/* duo: telefono -> schermo cucina (l'ordine vola) */
+.duo{position:relative;display:flex;align-items:center;gap:26px}
+.duo .arr{position:absolute;left:150px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:17px;z-index:1}
+.mphone{position:relative;width:150px;height:306px;border-radius:30px;background:#16171f;padding:7px;flex:none;box-shadow:var(--sh-dev)}
+.mphone::before{content:"";position:absolute;top:12px;left:50%;transform:translateX(-50%);width:54px;height:15px;border-radius:9px;background:#000;z-index:5}
+.ms{position:absolute;inset:7px;border-radius:24px;overflow:hidden;background:linear-gradient(180deg,#15161d,#0e0f15);display:flex;flex-direction:column}
+.ms .mt{padding:22px 12px 9px;font-size:10.5px;font-weight:700;color:var(--text);border-bottom:1px solid var(--soft)}
+.ms .mrow{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;font-size:11px;border-bottom:1px solid var(--soft);gap:6px}
+.ms .mrow .pz{color:var(--text);font-weight:700;white-space:nowrap}
+.ms .send{margin-top:auto;background:var(--grad);color:#1a1226;font-weight:800;font-size:11.5px;padding:12px;text-align:center}
+.kmon{position:relative;width:206px;flex:none}
+.kscreen{width:214px;height:202px;background:var(--card);border:1px solid var(--soft);border-radius:14px;box-shadow:var(--sh-card);padding:13px;position:relative;overflow:hidden}
+.kscreen .kh{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);display:flex;justify-content:space-between;margin-bottom:9px}
+.kscreen .empty{position:absolute;inset:34px 0 0;display:grid;place-items:center;color:var(--faint);font-size:11px}
+.kt{background:var(--surface2);border:1px solid var(--soft);border-left:3px solid var(--lilac);border-radius:10px;padding:9px 10px}
+.kt .ktt{display:flex;justify-content:space-between;font-size:10.5px;font-weight:700;margin-bottom:5px}
+.kt .ktt b{color:var(--lilac)}
+.kt .ktl{font-size:10px;color:var(--text2);padding:1px 0}
+.kt .kc{font-size:8.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin:6px 0 1px}
+.kding{position:absolute;top:9px;right:9px;background:var(--green);color:#03260f;font-size:9px;font-weight:800;padding:4px 8px;border-radius:7px;opacity:0;z-index:6;box-shadow:0 6px 14px -6px rgba(0,0,0,.7)}
+.kstand{width:10px;height:16px;background:#16171f;border-radius:0 0 4px 4px;margin:0 auto}
+.kbase{width:84px;height:6px;background:#101118;border-radius:3px;margin:3px auto 0;box-shadow:0 10px 18px -8px rgba(0,0,0,.8)}
+.flyt{position:absolute;left:62px;top:236px;z-index:5;opacity:0;background:#fff;color:#16171f;border-radius:8px;padding:6px 9px;font-size:10px;font-weight:800;box-shadow:0 12px 26px -8px rgba(0,0,0,.75);white-space:nowrap}
+
+.panelm{width:318px;background:var(--card);border:1px solid var(--soft);border-radius:var(--r-lg);padding:16px;box-shadow:var(--sh-card);position:relative}
+.panelm h4{font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--text3);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pinhint{font-size:9.5px;color:var(--purple);border:1px solid var(--border);border-radius:5px;padding:2px 7px;white-space:nowrap}
+.lrow{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:9px 0;border-bottom:1px solid var(--soft);gap:8px;line-height:1.3}
+.lrow:last-child{border:none}
+.lrow .muted{color:var(--text3);font-size:12px}
+.lrow.tot{font-weight:800;font-size:16px;padding-top:11px}
+.lrow.tot .e{color:var(--text)}
+.cut{color:var(--text3);text-decoration:line-through;font-size:12px}
+.coupon{display:inline-flex;gap:7px;align-items:center;background:rgba(63,184,116,.13);color:var(--green-t);border:1px solid rgba(63,184,116,.34);font-size:11.5px;font-weight:700;padding:7px 11px;border-radius:var(--r-sm);margin:8px 0}
+.btnbig{display:block;text-align:center;background:var(--grad);color:#1a1226;font-weight:800;font-size:13px;padding:12px;border-radius:var(--r-md);margin-top:8px}
+.okpop{display:inline-flex;gap:7px;align-items:center;color:var(--green-t);background:rgba(63,184,116,.13);border:1px solid rgba(63,184,116,.38);font-weight:700;font-size:12.5px;padding:9px 13px;border-radius:var(--r-sm);margin-top:10px}
+.scontrino{background:#f7f5f0;color:#1a1a1a;font-family:ui-monospace,Menlo,monospace;font-size:10px;line-height:1.55;padding:12px 15px;border-radius:5px;box-shadow:0 16px 34px -12px rgba(0,0,0,.65);margin-top:12px;transform-origin:top}
+.scontrino .sh{text-align:center;font-weight:800;letter-spacing:.06em;font-size:9.5px;border-bottom:1px dashed #b9b3a6;padding-bottom:7px;margin-bottom:7px}
+.scontrino .sl{display:flex;justify-content:space-between;padding:2px 0}
+.scontrino .sl.tt{font-weight:800;border-top:1px dashed #b9b3a6;margin-top:6px;padding-top:6px;font-size:11px}
+.scontrino .sf{text-align:center;color:#8a8578;font-size:8px;margin-top:8px;border-top:1px dashed #b9b3a6;padding-top:7px}
+
+.flow2{display:flex;align-items:center;gap:5px;margin:12px 0 4px;flex-wrap:wrap}
+.chip{font-size:10.5px;font-weight:700;padding:6px 10px;border-radius:var(--r-sm);background:var(--surface2);border:1px solid var(--soft);color:var(--text3);transition:.25s;min-width:96px;text-align:center;display:inline-grid;place-items:center;height:26px}
+.chip.amber{background:rgba(224,150,42,.16);color:var(--amber-t);border-color:rgba(224,150,42,.4)}
+.chip.green{background:rgba(63,184,116,.16);color:var(--green-t);border-color:rgba(63,184,116,.45)}
+.chip.muted{background:var(--surface2);color:var(--text3);text-decoration:line-through}
+.parr{color:var(--faint);font-size:11px}
+
+.kds{width:300px;background:var(--card);border:1px solid var(--soft);border-radius:var(--r-lg);padding:14px;box-shadow:var(--sh-card)}
+.kdsh{font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--text3);display:flex;justify-content:space-between;margin-bottom:10px}
+.ticket{background:var(--surface2);border:1px solid var(--soft);border-left:3px solid var(--lilac);border-radius:var(--r-md);padding:11px 12px}
+.ticket .tt{display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:6px}
+.ticket .tt .tav{color:var(--lilac)}
+.crs{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--soft);font-size:12.5px;gap:8px;line-height:1.35}
+.crs:last-child{border:none}
+.crs .cn small{color:var(--text3);font-size:10px;margin-left:6px}
+.crs.served .cn{color:var(--text3);text-decoration:line-through}
+.crs .q{color:var(--text);font-weight:700}
+
+.dash{width:318px;background:var(--card);border:1px solid var(--soft);border-radius:var(--r-lg);padding:20px;box-shadow:var(--sh-card)}
+.dash .dl{font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--text3)}
+.dash .num{font-size:42px;font-weight:800;letter-spacing:-.03em;line-height:1;margin:6px 0 3px}
+.dash .num .cur{font-size:.55em;font-weight:600;color:var(--text3);vertical-align:.08em;margin-right:3px}
+.dash .sub{font-size:12px;color:var(--green);font-weight:600}
+.kpis{display:flex;gap:8px;margin-top:14px}
+.kpi{flex:1;background:var(--surface2);border:1px solid var(--soft);border-radius:var(--r-md);padding:10px;text-align:center}
+.kpi b{font-size:16px;font-weight:700;display:block}.kpi small{font-size:9.5px;color:var(--text3);letter-spacing:.04em}
+.bars{display:flex;align-items:flex-end;gap:7px;height:58px;margin-top:16px;border-bottom:1px solid var(--soft);padding-bottom:1px}
+.bars i{flex:1;background:rgba(201,169,233,.26);border-radius:4px 4px 0 0}
+.bars i:last-child{background:var(--grad)}
+.barx{display:flex;gap:7px;margin-top:5px}.barx span{flex:1;text-align:center;font-size:8px;color:var(--faint)}
+.mini{margin-top:13px;font-size:12px;color:var(--text3);display:flex;justify-content:space-between;border-top:1px solid var(--soft);padding-top:10px}
+.mini b{color:var(--text)}
+
+.shop{width:318px;position:relative}
+.cats{display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.prod{background:var(--surface);border:1px solid var(--soft);border-radius:var(--r-md);padding:11px;text-align:center;position:relative}
+.prod.pick{border-color:var(--lilac);box-shadow:0 0 0 2px rgba(201,169,233,.25)}
+.prod .ph{height:54px;border-radius:var(--r-sm);background:linear-gradient(135deg,#23202e,#181820);display:grid;place-items:center;font-size:25px;margin-bottom:9px}
+.prod b{font-size:12px;display:block;line-height:1.25}.prod .pz{font-size:12px;color:var(--text);font-weight:700;margin-top:4px}
+.taglow{position:absolute;top:8px;right:8px;background:rgba(224,150,42,.18);color:var(--amber-t);border:1px solid rgba(224,150,42,.36);font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px}
+.carticon{position:absolute;top:8px;right:10px;font-size:19px;color:var(--text2)}
+.cbadge{position:absolute;top:-7px;right:-9px;min-width:17px;height:17px;border-radius:9px;background:var(--grad);color:#1a1226;font-size:10px;font-weight:800;display:grid;place-items:center;opacity:0;padding:0 3px}
+.stbar{height:5px;border-radius:3px;background:var(--surface2);overflow:hidden;margin-top:4px}.stbar i{display:block;height:100%;background:var(--grad)}
+.fly{position:absolute;width:28px;height:28px;border-radius:var(--r-sm);background:var(--grad);display:grid;place-items:center;color:#1a1226;font-weight:800;font-size:12px;z-index:6;opacity:0;left:40%;top:55%}
+
+.bigprod{width:296px;background:var(--card);border:1px solid var(--soft);border-radius:var(--r-lg);padding:17px;box-shadow:var(--sh-card)}
+.bigprod .ph{height:98px;border-radius:var(--r-md);background:linear-gradient(135deg,#2a2440,#181820);display:grid;place-items:center;font-size:48px;margin-bottom:12px}
+.bigprod .nm{font-size:17px;font-weight:600;letter-spacing:-.01em}.bigprod .pz{font-size:18px;font-weight:700;color:var(--text);margin-top:3px}
+.bigprod .ds{font-size:12px;color:var(--text3);margin-top:5px}
+.sizes{display:flex;gap:7px;margin-top:13px}
+.sz{display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid var(--soft);border-radius:var(--r-sm);padding:8px 0;font-size:13px;font-weight:700;flex:1}
+.sz small{font-size:9.5px;color:var(--text3);font-weight:600}
+.sz.sel{border-color:var(--lilac);background:rgba(201,169,233,.12)}
+
+.trk{display:flex;align-items:center;gap:6px;margin:13px 0 5px}
+.trk .d{width:14px;height:14px;border-radius:50%;background:var(--surface2);border:1.5px solid var(--soft)}
+.trk .d.on{background:var(--grad);border-color:transparent}
+.trk .ln{flex:1;height:2px;background:var(--surface2);position:relative;border-radius:2px;overflow:hidden}
+.trk .ln i{position:absolute;left:0;top:0;height:100%;width:0;background:var(--grad)}
+.trklab{display:flex;justify-content:space-between;font-size:10px;color:var(--text3)}
+.trackn{display:inline-flex;gap:7px;align-items:center;background:rgba(201,169,233,.1);border:1px solid var(--border);color:var(--lilac);font-size:11px;font-weight:700;padding:7px 11px;border-radius:var(--r-sm);margin-top:9px;font-family:ui-monospace,monospace}
+.maillike{background:var(--surface2);border:1px solid var(--soft);border-radius:var(--r-md);padding:12px;margin-top:5px}
+.maillike .ml-h{font-size:11px;color:var(--text3);border-bottom:1px solid var(--soft);padding-bottom:8px;margin-bottom:8px}
+.maillike .ml-b{font-size:13px;line-height:1.4}
+
+.shipwrap{position:relative;height:100px;margin-top:11px}
+.etichetta{position:absolute;left:12px;top:0;width:128px;background:#fff;color:#111;border-radius:var(--r-sm);padding:9px;font-family:ui-monospace,monospace;font-size:9px;line-height:1.35;box-shadow:0 12px 26px -8px rgba(0,0,0,.7);border:1px solid #ddd;opacity:0;transform-origin:top}
+.etichetta .bc{height:18px;margin-top:6px;background:repeating-linear-gradient(90deg,#111 0 2px,#fff 2px 3px,#111 3px 6px,#fff 6px 7px,#111 7px 9px,#fff 9px 12px)}
+.box{position:absolute;right:16px;top:16px;width:66px;height:62px;border-radius:var(--r-md);background:linear-gradient(135deg,#2a2440,#1b1922);border:1px solid var(--soft);display:grid;place-items:center;font-size:27px}
+.boxchk{position:absolute;right:10px;top:8px;color:var(--green);font-weight:800;font-size:15px;opacity:0}
+
+.scanbox{width:306px;background:var(--card);border:1px solid var(--soft);border-radius:var(--r-lg);padding:16px;box-shadow:var(--sh-card)}
+.modes{display:flex;gap:6px;margin-bottom:12px}
+.mode{flex:1;text-align:center;font-size:11.5px;font-weight:700;padding:9px;border-radius:var(--r-sm);background:var(--surface2);border:1px solid var(--soft);color:var(--text3)}
+.mode.on{background:rgba(201,169,233,.14);color:var(--lilac);border-color:var(--border)}
+.scanview{position:relative;height:100px;border-radius:var(--r-md);background:#0a0b0f;border:1px solid var(--soft);overflow:hidden;display:grid;place-items:center}
+.barcode{width:160px;height:56px;background:#fff;padding:0 8px;background-image:repeating-linear-gradient(90deg,#111 0 2px,#fff 2px 3px,#111 3px 6px,#fff 6px 7px,#111 7px 9px,#fff 9px 12px)}
+.photo{width:88px;height:66px;border-radius:var(--r-sm);background:linear-gradient(135deg,#3a2f4f,#201d2a);display:grid;place-items:center;font-size:32px}
+.sbeam{position:absolute;left:8%;right:8%;height:2px;background:var(--green);box-shadow:0 0 14px 3px rgba(63,184,116,.7);top:8px}
+
+.sala{width:324px;background:var(--card);border:1px solid var(--soft);border-radius:var(--r-lg);padding:16px;box-shadow:var(--sh-card)}
+.floor{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:13px}
+.tbl{height:48px;border-radius:var(--r-md);background:var(--surface2);border:1px solid var(--soft);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--text3);position:relative}
+.tbl.busy{color:var(--text2)}
+.tbl .cap2{position:absolute;bottom:4px;right:7px;font-size:8px;color:var(--faint);font-weight:600}
+.tbl .walkin{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;color:#1a1226;background:var(--grad);border-radius:var(--r-md)}
+.resv-row{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;padding:9px 0;border-bottom:1px solid var(--soft);line-height:1.3}
+.resv-row .src{font-size:10px;color:var(--text3)}
+.tag-site{color:var(--green);font-weight:700;font-size:11px}
+.tag-man{color:var(--lilac);font-weight:700;font-size:11px}
+.addman{margin-top:10px;text-align:center;font-size:11.5px;font-weight:700;color:var(--lilac);border:1px dashed var(--border);border-radius:var(--r-md);padding:9px}
+.tw{display:inline-block;white-space:nowrap;vertical-align:bottom}
+.cae{color:var(--lilac);font-weight:400;margin-left:1px;animation:blink 1s step-end infinite}
+@keyframes blink{50%{opacity:0}}
+.tbl{transition:box-shadow .3s}
+.tbl .resv{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-weight:800;color:#1a1226;background:var(--grad);border-radius:var(--r-md);line-height:1.05;box-shadow:0 0 0 3px var(--lilac),0 0 24px 5px rgba(201,169,233,.62);animation:resvglow 1.7s ease-in-out infinite;z-index:2}
+@keyframes resvglow{0%,100%{box-shadow:0 0 0 3px var(--lilac),0 0 16px 3px rgba(201,169,233,.45)}50%{box-shadow:0 0 0 3px var(--lilac),0 0 32px 9px rgba(201,169,233,.9)}}
+@media(prefers-reduced-motion:reduce){.tbl .resv{animation:none}}
+.tbl .resv b{font-size:10px}.tbl .resv span{font-size:7.5px;opacity:.85}
+.tbl.tap{box-shadow:0 0 0 2px var(--lilac),0 0 18px 3px rgba(201,169,233,.5);border-color:var(--lilac)}
+.live{color:var(--green);font-size:8px;letter-spacing:.06em;font-weight:700}
+/* booking step-by-step (lato cliente / staff) */
+.bkstep{display:flex;gap:4px;padding:9px 12px 2px}
+.bkstep i{height:3px;flex:1;border-radius:2px;background:var(--surface2)}
+.bkstep i.on{background:var(--grad)}
+.bkh{padding:12px 13px 9px;font-size:12px;font-weight:800;border-bottom:1px solid var(--soft);display:flex;justify-content:space-between;align-items:center}
+.bkh small{font-size:8.5px;color:var(--text3);font-weight:600;letter-spacing:.06em}
+.bkb{flex:1;padding:11px 12px;display:flex;flex-direction:column;gap:8px;overflow:hidden}
+.bklab{font-size:8.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3)}
+.bkgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.bkgrid.c3{grid-template-columns:repeat(3,1fr)}
+.bkc{padding:8px 0;text-align:center;font-size:11.5px;font-weight:700;border:1px solid var(--soft);border-radius:8px;background:var(--surface2);color:var(--text2)}
+.bkc small{display:block;font-size:7.5px;color:var(--faint);font-weight:600;margin-top:1px}
+.bkc.on{background:rgba(201,169,233,.16);border-color:var(--lilac);color:var(--lilac)}
+.bkcta{margin-top:auto;background:var(--grad);color:#1a1226;font-weight:800;font-size:12px;padding:13px;text-align:center}
+.bkfield{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:1px solid var(--soft);border-radius:8px;font-size:11px;background:var(--surface2)}
+.bkfield .bkk{color:var(--text3)}.bkfield .bkv{font-weight:700;color:var(--text)}
+.bkhero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;text-align:center;padding:14px}
+.bkhero .em{font-size:38px}.bkhero .eyeb{font-size:8px;letter-spacing:.3em;color:var(--lilac);font-weight:700}.bkhero .t1{font-size:24px;font-weight:800;line-height:1.05;color:var(--text)}.bkhero .t2{font-size:10px;color:var(--text3);line-height:1.5}.ghostb{text-align:center;padding:11px;border:1px solid var(--lilac);border-radius:24px;color:var(--lilac);font-weight:700;font-size:12px}
+.bkok{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;text-align:center;padding:15px}
+.bkok .ring{width:52px;height:52px;border-radius:50%;background:rgba(63,184,116,.16);border:2px solid var(--green);display:grid;place-items:center;font-size:24px;color:var(--green)}
+.mthumb{position:relative;width:26px;height:26px;border-radius:7px;flex:none;display:grid;place-items:center;font-size:15px;background:linear-gradient(135deg,#2a2440,#181820);overflow:hidden}
+.mthumb .pic{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(135deg,#2a2440,#181820);font-size:15px}
+.mthumb .addf{position:absolute;inset:0;display:grid;place-items:center;border:1px dashed var(--border);border-radius:7px;color:var(--text3);font-size:13px}
+.sdot{font-size:11px;font-weight:700;color:var(--green)}
+.sdot.wait{color:#e0962a}
+/* assistente vocale (BoostedVoice) */
+.vorb{width:44px;height:44px;border-radius:50%;flex:none;position:relative;background:conic-gradient(from 200deg,#5B2A86,#8B6FB8,#C9A9E9,#8B6FB8,#5B2A86);box-shadow:0 0 0 5px rgba(139,111,184,.10),0 0 26px rgba(139,111,184,.5)}
+.vorb::after{content:'';position:absolute;inset:7px;border-radius:50%;background:#120e1c}
+.vorb.live{animation:vpulse 1.4s infinite}
+@keyframes vpulse{0%{box-shadow:0 0 0 0 rgba(139,111,184,.5)}70%{box-shadow:0 0 0 12px rgba(139,111,184,0)}100%{box-shadow:0 0 0 0 rgba(139,111,184,0)}}
+.vcard{width:344px;background:var(--card);border:1px solid var(--soft);border-radius:var(--r-lg);padding:16px;box-shadow:var(--sh-card)}
+.vhead{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.vhead b{font-size:13.5px}.vhead .vst{font-size:11px;color:var(--lilac);margin-top:2px}
+.vrec{margin-left:auto;font-size:10px;font-weight:700;color:#FF8B8B;letter-spacing:.5px}
+.vlog{display:flex;flex-direction:column;gap:7px}
+.vbub{max-width:84%;padding:8px 12px;border-radius:13px;font-size:12px;line-height:1.4}
+.vbub.ai{align-self:flex-start;background:var(--surface2);border:1px solid var(--soft);border-bottom-left-radius:4px}
+.vbub.caller{align-self:flex-end;background:linear-gradient(135deg,#5B2A86,#8B6FB8);color:#fff;border-bottom-right-radius:4px}
+.vtool{align-self:center;font-size:10px;color:var(--text2);background:rgba(124,219,168,.12);border:1px solid var(--soft);border-radius:999px;padding:4px 10px;font-family:ui-monospace,monospace;text-align:center}
+.vtool .ok{color:var(--green);font-weight:700}
+
+/* ---------- controls ---------- */
+.bar{position:relative;z-index:6;display:flex;align-items:center;gap:14px;padding:9px 26px 12px}
+.timer{flex:1;height:3px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.timer i{display:block;height:100%;width:0;background:var(--grad);border-radius:3px}
+.timer.run i{animation:tfill var(--dur,5.2s) linear forwards}
+.paused .timer.run i{animation-play-state:paused}
+@keyframes tfill{from{width:0}to{width:100%}}
+.ctrl{font-family:inherit;font-size:13px;font-weight:700;color:var(--text);background:var(--surface);border:1px solid var(--soft);min-width:42px;height:40px;padding:0 13px;border-radius:12px;cursor:pointer;display:grid;place-items:center;transition:.16s}
+.ctrl:hover{border-color:var(--border);background:var(--surface2)}
+.ctrl.play{background:var(--grad);color:var(--black);border-color:transparent;box-shadow:0 7px 18px -7px rgba(201,169,233,.6)}
+.scount{font-size:12px;color:var(--text3);font-weight:600;white-space:nowrap;min-width:44px;text-align:right}
+
+@media (prefers-reduced-motion:reduce){
+  .beamline,.sbeam,.timer.run i{animation:none!important}
+}
+/* ===== BoostedVoice: simulazione chiamata interattiva (da mostrare al cliente) ===== */
+.simcall{display:block;width:100%;margin-top:13px;background:var(--grad);color:#1a1226;font-weight:800;font-size:12.5px;padding:11px;border:none;border-radius:11px;cursor:pointer;font-family:inherit}
+#bvModal{position:fixed;inset:0;background:rgba(5,4,10,.74);backdrop-filter:blur(3px);display:none;place-items:center;z-index:200;padding:20px}
+#bvModal.open{display:grid}
+#bvModal .mpanel{max-width:470px;width:100%;border:1px solid var(--border);border-radius:16px;background:var(--card);padding:18px;max-height:86vh;overflow:auto;box-shadow:0 30px 80px -20px rgba(0,0,0,.8)}
+#bvToast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);z-index:230;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:11px 18px;font-size:13px;font-weight:600;box-shadow:0 18px 40px rgba(0,0,0,.5);opacity:0;transition:.25s;pointer-events:none;max-width:90vw}
+#bvToast.show{opacity:1;transform:translateX(-50%) translateY(0)}#bvToast b{color:var(--lilac)}
+.bvc{display:flex;flex-direction:column;min-height:0}
+.bvc-tabs{display:flex;gap:6px;align-items:center;margin-bottom:12px}
+.bvc-tab{background:var(--surface2);border:1px solid var(--soft);color:var(--text3);border-radius:999px;padding:7px 14px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit}
+.bvc-tab.on{background:rgba(139,111,184,.18);border-color:var(--lilac);color:#fff}
+.bvc-x{margin-left:auto;background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;line-height:1;padding:2px 6px}
+.bvc-head{display:flex;align-items:center;gap:11px;padding:10px 12px;background:var(--surface2);border:1px solid var(--soft);border-radius:13px;margin-bottom:11px}
+.bvc-orb{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 50% 35%,#8B6FB8,#5B2A86);flex:0 0 auto}
+.bvc-orb.live{animation:bvpulse 1.4s infinite}
+@keyframes bvpulse{0%{box-shadow:0 0 0 0 rgba(139,111,184,.55)}70%{box-shadow:0 0 0 13px rgba(139,111,184,0)}100%{box-shadow:0 0 0 0 rgba(139,111,184,0)}}
+.bvc-head b{font-size:14px}.bvc-st{font-size:11.5px;color:var(--lilac)}
+.bvc-rec{margin-left:auto;font-size:10.5px;font-weight:700;color:#FF8B8B;letter-spacing:.5px}
+.bvc-log{display:flex;flex-direction:column;gap:8px;max-height:46vh;overflow:auto;padding:4px 2px}
+.bvb{max-width:84%;padding:9px 13px;border-radius:14px;font-size:13.5px;line-height:1.45;animation:bvin .25s ease;word-wrap:break-word}
+@keyframes bvin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.bvb.ai{align-self:flex-start;background:var(--surface2);border:1px solid var(--soft);border-bottom-left-radius:4px}
+.bvb.caller{align-self:flex-end;background:linear-gradient(135deg,#5B2A86,#8B6FB8);color:#fff;border-bottom-right-radius:4px}
+.bvtype{display:inline-flex;gap:4px;padding:3px 1px}
+.bvtype i{width:6px;height:6px;border-radius:50%;background:var(--text3);animation:bvbounce 1s infinite}
+.bvtype i:nth-child(2){animation-delay:.15s}.bvtype i:nth-child(3){animation-delay:.3s}
+@keyframes bvbounce{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+.bvtool{align-self:center;font-size:11px;color:var(--text3);background:rgba(124,219,168,.13);border:1px solid var(--soft);border-radius:999px;padding:4px 11px;font-family:ui-monospace,monospace;display:flex;align-items:center;gap:7px;max-width:92%}
+.bvtool.done{color:var(--text2)}.bvt-ok{color:var(--green);font-weight:700}
+.bvt-spin{width:9px;height:9px;border:2px solid var(--soft);border-top-color:var(--lilac);border-radius:50%;animation:bvspin .7s linear infinite;flex:0 0 auto}
+@keyframes bvspin{to{transform:rotate(360deg)}}
+.bvc-choices{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px;justify-content:flex-end}
+.bvc-choice{background:var(--surface2);border:1px solid var(--lilac);color:#fff;border-radius:999px;padding:8px 15px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.bvc-choice:hover{background:rgba(139,111,184,.22)}
+.bvc-done{flex-basis:100%;text-align:center;color:var(--green);font-weight:700;font-size:13.5px;margin:2px 0 6px}
+.bvc-voicewrap{text-align:center;padding:10px 4px}
+.bvc-vlead{font-size:13.5px;color:var(--text2);line-height:1.5;margin-bottom:14px}
+.bvc-vnote{font-size:11.5px;color:var(--text3);margin-top:13px}
+.bvbtn{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:800;border-radius:11px;padding:10px 15px;background:var(--grad);color:#1a1226;border:none;cursor:pointer;font-family:inherit}
+</style>
+</head>
+<body>
+  <div class="head">
+    <svg class="logo" viewBox="0 0 48 48" fill="none"><defs><linearGradient id="g" x1="0" y1="0" x2=".42" y2="1">
+    <stop offset="0" stop-color="#C9A9E9"/><stop offset="1" stop-color="#8B6FB8"/></linearGradient></defs>
+    <path d="M6 30H13V38H6Z" fill="url(#g)" opacity=".55"/><path d="M16 22H23V38H16Z" fill="url(#g)" opacity=".78"/>
+    <path d="M26 13H33V38H26Z" fill="url(#g)"/><path d="M36 5H43V38H36Z" fill="url(#g)"/>
+    <path d="M6 30 43 5" stroke="#C9A9E9" stroke-width="2.4" stroke-linecap="round" opacity=".9"/></svg>
+    <div class="w"><b>BOOSTED</b><span>COME FUNZIONA</span></div>
+
+  </div>
+
+  <div class="rail" id="rail"></div>
+
+  <div class="film">
+    <div class="layer" id="layA"></div>
+    <div class="layer" id="layB"></div>
+  </div>
+
+  <div class="bar" id="bar">
+    <button class="ctrl" id="prev" onclick="step(-1)">◀</button>
+    <button class="ctrl play" id="play" onclick="togglePlay()">⏸</button>
+    <button class="ctrl" id="next" onclick="step(1)">▶</button>
+    <div class="timer" id="timer"><i></i></div>
+    <div class="scount" id="scount"></div>
+    <div class="phint">✋ ferma col mouse · clic per avanzare</div>
+  </div>
+
+  <div id="bvModal"><div class="mpanel" id="bvModalPanel"></div></div>
+  <div id="bvToast"></div>
+
+<script>
+var G=window.gsap;
+var RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function q(r,s){return r.querySelector(s);}
+function qa(r,s){return Array.prototype.slice.call(r.querySelectorAll(s));}
+function count(el,to,dur){ if(!el)return; dur=dur||1; var t0=null;
+  function fr(ts){ if(!t0)t0=ts; var p=Math.min((ts-t0)/(dur*1000),1),e=1-Math.pow(1-p,3); el.textContent=Math.round(to*e).toLocaleString('it-IT'); if(p<1&&!RM)requestAnimationFrame(fr); else el.textContent=to.toLocaleString('it-IT'); }
+  el.textContent='0'; if(RM){el.textContent=to.toLocaleString('it-IT');return;} requestAnimationFrame(fr); }
+function setStates(chips,idx,cls){ chips.forEach(function(c,k){ c.classList.remove('on','amber','green','muted'); if(k<idx)c.classList.add('muted'); else if(k===idx)c.classList.add('on',cls); }); }
+function fit(){ var film=document.querySelector('.film'); if(!film)return; var w=film.clientWidth,h=film.clientHeight; var s=Math.min((w-40)/900,(h-16)/350,1.42); if(s<.35)s=.35; qa(document,'.frame').forEach(function(f){ f.style.transform='scale('+s+')'; }); }
+window.addEventListener('resize',fit);
+
+var LOGO='<svg class="clogo" viewBox="0 0 48 48" fill="none"><defs><linearGradient id="gc" x1="0" y1="0" x2=".42" y2="1"><stop offset="0" stop-color="#C9A9E9"/><stop offset="1" stop-color="#8B6FB8"/></linearGradient></defs><path d="M6 30H13V38H6Z" fill="url(#gc)" opacity=".55"/><path d="M16 22H23V38H16Z" fill="url(#gc)" opacity=".78"/><path d="M26 13H33V38H26Z" fill="url(#gc)"/><path d="M36 5H43V38H36Z" fill="url(#gc)"/><path d="M6 30 43 5" stroke="#C9A9E9" stroke-width="2.4" stroke-linecap="round" opacity=".9"/></svg>';
+var DOT={cliente:'#C9A9E9',staff:'#8B6FB8',cucina:'#E0962A',cassa:'#8B6FB8',titolare:'#3fb874',magazzino:'#E0962A'};
+
+/* ======================= SCENE ======================= */
+var SCENES = {
+ qr:[
+  { cover:true, hold:3400,
+    html:'<div class="cover">'+LOGO+'<div class="ck">Come funziona</div><h1>Un ordine, dall’inizio alla cassa.</h1><p>Lo stesso sistema, al tavolo e in tempo reale.</p></div>',
+    anim:function(r){ var tl=G.timeline(); tl.from(q(r,'.clogo'),{scale:.6,opacity:0,ease:'back.out(1.7)',duration:.6}).from(q(r,'.ck'),{opacity:0,y:8,duration:.4},'-=.1').from(q(r,'h1'),{opacity:0,y:14,duration:.5}).from(q(r,'p'),{opacity:0,y:10,duration:.4},'-=.2'); return tl; } },
+
+  { act:'Arrivo', tag:'Sito · apre', actor:'cliente', actorLabel:'Cliente · dal sito', label:'Apre il sito', sub:'Dal telefono, senza scaricare nulla', hold:4600,
+    html:'<div class="phone"><div class="scr"><div class="sbar"><span>20:36</span><span class="r">5G ·  84%</span></div>'
+      +'<div class="bkhero"><div class="eyeb">❖ BENVENUTI</div><div class="t1">Ristorante</div>'
+      +'<div class="t2">Cucina di stagione e cantina scelta.<br>Vi aspettiamo a pranzo e a cena.</div>'
+      +'<div style="display:flex;flex-direction:column;gap:8px;align-self:stretch;margin-top:12px">'
+      +'<div class="bkcta prenbtn" style="border-radius:24px">Prenota ora</div>'
+      +'<div class="ghostb">Scopri il menu</div></div></div></div></div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.from(q(r,'.phone'),{y:16,opacity:0,duration:.45,ease:'power3.out'})
+        .from(q(r,'.eyeb'),{y:-6,opacity:0,duration:.35,ease:'power3.out'},'-=.1')
+        .from(q(r,'.t1'),{y:10,opacity:0,duration:.45})
+        .from(q(r,'.t2'),{y:6,opacity:0,duration:.3},'-=.15')
+        .from(qa(r,'.bkcta,.ghostb'),{y:12,opacity:0,stagger:.1,duration:.35})
+        .to(q(r,'.prenbtn'),{scale:1.03,duration:.16,yoyo:true,repeat:1,transformOrigin:'center'},'+=.2');
+      return tl; } },
+
+  { act:'Arrivo', tag:'Sito · quando', actor:'cliente', actorLabel:'Cliente · dal sito', label:'Sceglie giorno e ora', sub:'Solo gli slot davvero liberi', hold:5200,
+    html:'<div class="phone"><div class="scr"><div class="sbar"><span>20:36</span><span class="r">5G ·  84%</span></div>'
+      +'<div class="bkstep"><i class="on"></i><i></i><i></i><i></i></div>'
+      +'<div class="bkh"><span>Quando venite?</span><small>1 / 4</small></div>'
+      +'<div class="bkb"><div class="bklab">Giorno</div>'
+      +'<div class="bkgrid"><div class="bkc">Gio<small>18</small></div><div class="bkc dsel">Ven<small>19</small></div><div class="bkc">Sab<small>20</small></div><div class="bkc">Dom<small>21</small></div></div>'
+      +'<div class="bklab" style="margin-top:4px">Orario</div>'
+      +'<div class="bkgrid"><div class="bkc">19:30</div><div class="bkc">20:00</div><div class="bkc tsel">20:30</div><div class="bkc">21:00</div></div></div>'
+      +'<div class="bkcta">Avanti →</div></div></div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.from(q(r,'.phone'),{y:16,opacity:0,duration:.4,ease:'power3.out'})
+        .from(qa(r,'.bkc'),{y:10,opacity:0,stagger:.04,duration:.26})
+        .add(function(){ q(r,'.dsel').classList.add('on'); },'+=.1')
+        .to(q(r,'.dsel'),{scale:1.06,duration:.14,yoyo:true,repeat:1,transformOrigin:'center'})
+        .add(function(){ q(r,'.tsel').classList.add('on'); },'+=.25')
+        .to(q(r,'.tsel'),{scale:1.06,duration:.14,yoyo:true,repeat:1,transformOrigin:'center'})
+        .to(q(r,'.bkcta'),{scale:1.03,duration:.16,yoyo:true,repeat:1,transformOrigin:'center'},'+=.25');
+      return tl; } },
+
+  { act:'Arrivo', tag:'Sito · coperti', actor:'cliente', actorLabel:'Cliente · dal sito', label:'Quanti a tavola', sub:'Il numero di coperti', hold:4600,
+    html:'<div class="phone"><div class="scr"><div class="sbar"><span>20:37</span><span class="r">5G ·  84%</span></div>'
+      +'<div class="bkstep"><i class="on"></i><i class="on"></i><i></i><i></i></div>'
+      +'<div class="bkh"><span>Quanti siete?</span><small>2 / 4</small></div>'
+      +'<div class="bkb"><div class="bklab">Coperti</div>'
+      +'<div class="bkgrid c3"><div class="bkc">2</div><div class="bkc">3</div><div class="bkc psel">4</div><div class="bkc">5</div><div class="bkc">6</div><div class="bkc">7+</div></div>'
+      +'<div class="bkfield" style="margin-top:8px"><span class="bkk">Note</span><span class="bkv">tavolo tranquillo</span></div></div>'
+      +'<div class="bkcta">Avanti →</div></div></div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.from(q(r,'.phone'),{y:16,opacity:0,duration:.4,ease:'power3.out'})
+        .from(qa(r,'.bkc'),{scale:.6,opacity:0,stagger:.05,ease:'back.out(1.6)',duration:.3})
+        .add(function(){ q(r,'.psel').classList.add('on'); },'+=.1')
+        .to(q(r,'.psel'),{scale:1.08,duration:.15,yoyo:true,repeat:1,transformOrigin:'center'})
+        .from(q(r,'.bkfield'),{y:8,opacity:0,duration:.3},'+=.05');
+      return tl; } },
+
+  { act:'Arrivo', tag:'Sito · dati', actor:'cliente', actorLabel:'Cliente · dal sito', label:'Lascia i suoi dati', sub:'Nome e contatti, una volta sola', hold:5800,
+    html:'<div class="phone"><div class="scr"><div class="sbar"><span>20:37</span><span class="r">5G ·  84%</span></div>'
+      +'<div class="bkstep"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div>'
+      +'<div class="bkh"><span>I tuoi dati</span><small>3 / 4</small></div>'
+      +'<div class="bkb"><div class="bkfield"><span class="bkk">Nome</span><span class="bkv"><span class="tw">Bianchi</span><b class="cae">▌</b></span></div>'
+      +'<div class="bkfield"><span class="bkk">Telefono</span><span class="bkv"><span class="tw">347 123 4567</span><b class="cae">▌</b></span></div>'
+      +'<div class="bkfield"><span class="bkk">Email</span><span class="bkv"><span class="tw">bianchi@mail.it</span><b class="cae">▌</b></span></div></div>'
+      +'<div class="bkcta prenbtn">Conferma prenotazione</div></div></div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.from(q(r,'.phone'),{y:16,opacity:0,duration:.4,ease:'power3.out'})
+        .from(qa(r,'.bkfield'),{x:-10,opacity:0,stagger:.1,duration:.3})
+        .fromTo(qa(r,'.tw'),{clipPath:'inset(0 100% 0 0)'},{clipPath:'inset(0 0 0 0)',stagger:.5,duration:.42,ease:'none'},'+=.05')
+        .to(qa(r,'.cae'),{opacity:0,duration:.2})
+        .to(q(r,'.prenbtn'),{scale:1.05,duration:.16,yoyo:true,repeat:1,transformOrigin:'center'},'+=.1');
+      return tl; } },
+
+  { act:'Arrivo', tag:'Sito · conferma', actor:'cliente', actorLabel:'Cliente · dal sito', label:'Prenotazione confermata', sub:'Conferma subito, email inclusa', hold:5200,
+    html:'<div class="phone"><div class="scr"><div class="sbar"><span>20:37</span><span class="r">5G ·  84%</span></div>'
+      +'<div class="bkstep"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>'
+      +'<div class="bkok"><div class="ring">✓</div><div style="font-size:14px;font-weight:800">Tavolo confermato</div>'
+      +'<div style="font-size:10.5px;color:var(--text3);line-height:1.55">Ven 19 · 20:30 · 4 coperti<br>Tavolo 5 · a nome Bianchi</div>'
+      +'<div class="okpop emok" style="opacity:0;margin-top:6px">✉️ Email di conferma inviata</div></div></div></div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.from(q(r,'.phone'),{y:16,opacity:0,duration:.4,ease:'power3.out'})
+        .from(q(r,'.ring'),{scale:0,rotate:-40,ease:'back.out(2)',duration:.55},'-=.05')
+        .from(q(r,'.bkok > div:nth-child(2)'),{y:8,opacity:0,duration:.3})
+        .from(q(r,'.bkok > div:nth-child(3)'),{y:6,opacity:0,duration:.3},'-=.1')
+        .to(q(r,'.emok'),{opacity:1,duration:.01},'+=.15').from(q(r,'.emok'),{y:8,opacity:0,duration:.4});
+      return tl; } },
+
+  { act:'Arrivo', tag:'Sito · in sala', actor:'staff', actorLabel:'Sala · in tempo reale', label:'Il tavolo entra in sala', sub:'Nessuna telefonata, zero errori', hold:5600,
+    html:'<div class="sala"><h4><span>Sala · tavoli in tempo reale</span><span class="pinhint">staff</span></h4>'
+      +'<div class="floor" style="margin-top:4px">'
+      +'<div class="tbl busy">T1<span class="cap2">2p</span></div><div class="tbl busy">T2<span class="cap2">4p</span></div><div class="tbl">T3<span class="cap2">2p</span></div>'
+      +'<div class="tbl busy">T4<span class="cap2">4p</span></div><div class="tbl" data-res>T5<div class="resv" style="opacity:0"><b>Bianchi</b><span>20:30 · 4p</span></div><span class="cap2">6p</span></div><div class="tbl">T6<span class="cap2">2p</span></div></div>'
+      +'<div class="okpop oksite" style="opacity:0">✓ Tavolo 5 prenotato dal sito</div></div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.from(qa(r,'.tbl'),{scale:.6,opacity:0,stagger:.05,ease:'back.out(1.7)',duration:.38})
+        .to(q(r,'[data-res]'),{borderColor:'transparent',duration:.01},'+=.2')
+        .to(q(r,'[data-res] .resv'),{opacity:1,duration:.01})
+        .from(q(r,'[data-res] .resv'),{scale:.5,opacity:0,ease:'back.out(1.9)',duration:.55})
+        .to(q(r,'.oksite'),{opacity:1,duration:.01},'+=.15').from(q(r,'.oksite'),{y:8,opacity:0,duration:.4});
+      return tl; } },
+
+  { act:'Arrivo', tag:'Voce · risponde', actor:'voce', actorLabel:'Assistente vocale · h24', label:'Al telefono risponde l’assistente', sub:'Voce AI (ElevenLabs) + Twilio: nessuno alza la cornetta', hold:6200,
+    html:'<div class="vcard">'
+      +'<div class="vhead"><span class="vorb live"></span><div style="min-width:0"><b>Ristorante · BoostedVoice</b><div class="vst">● in chiamata · risponde h24</div></div><span class="vrec">● REC</span></div>'
+      +'<div class="vlog">'
+      +'<div class="vbub ai b1">Ristorante, buonasera! Sono l’assistente. Posso aiutarla con una prenotazione?</div>'
+      +'<div class="vbub caller b2">Buonasera, vorrei prenotare un tavolo</div>'
+      +'</div>'
+      +'<button class="simcall" onclick="event.stopPropagation(); if(window.bvOpen)window.bvOpen();">▶ Simula la chiamata dal vivo</button>'
+      +'</div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.from(q(r,'.vcard'),{y:16,opacity:0,duration:.45,ease:'power3.out'})
+        .from(q(r,'.vorb'),{scale:.5,opacity:0,ease:'back.out(1.7)',duration:.5},'-=.15')
+        .from(q(r,'.b1'),{y:8,opacity:0,duration:.4},'+=.1')
+        .from(q(r,'.b2'),{y:8,opacity:0,duration:.4},'+=.35')
+        .from(q(r,'.simcall'),{y:8,opacity:0,duration:.4},'+=.2');
+      return tl; } },
+
+  { act:'Arrivo', tag:'Voce · prenota', actor:'voce', actorLabel:'Assistente vocale', label:'Prende la prenotazione parlando', sub:'Chiede persone e ora, e controlla la disponibilità', hold:7600,
+    html:'<div class="vcard" style="width:360px">'
+      +'<div class="vhead"><span class="vorb live"></span><div style="min-width:0"><b>Ristorante · BoostedVoice</b><div class="vst">● in chiamata</div></div><span class="vrec">● REC</span></div>'
+      +'<div class="vlog">'
+      +'<div class="vbub ai b1">Per quante persone?</div>'
+      +'<div class="vbub caller b2">Per due, verso le 20:30</div>'
+      +'<div class="vtool t1"><span class="ok">✓</span> check_availability · 20:30 · 2p · disponibile</div>'
+      +'<div class="vbub ai b3">Perfetto, abbiamo posto. A che nome?</div>'
+      +'<div class="vbub caller b4">Elena Conti</div>'
+      +'</div>'
+      +'<button class="simcall" onclick="event.stopPropagation(); if(window.bvOpen)window.bvOpen();">▶ Simula la chiamata dal vivo</button>'
+      +'</div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.from(q(r,'.vcard'),{y:16,opacity:0,duration:.4,ease:'power3.out'})
+        .from(q(r,'.b1'),{y:8,opacity:0,duration:.32})
+        .from(q(r,'.b2'),{y:8,opacity:0,duration:.32},'+=.25')
+        .from(q(r,'.t1'),{scale:.85,opacity:0,duration:.35,ease:'back.out(1.5)'},'+=.2')
+        .from(q(r,'.b3'),{y:8,opacity:0,duration:.32},'+=.15')
+        .from(q(r,'.b4'),{y:8,opacity:0,duration:.32},'+=.2')
+        .from(q(r,'.simcall'),{y:8,opacity:0,duration:.35},'+=.15');
+      return tl; } },
+
+  { act:'Arrivo', tag:'Voce · in agenda', actor:'staff', actorLabel:'Sala · in tempo reale', label:'La scrive in agenda, da sola', sub:'La prenotazione a voce entra come tutte le altre', hold:6200,
+    html:'<div class="sala"><h4><span>Sala · tavoli in tempo reale</span><span class="pinhint">staff</span></h4>'
+      +'<div class="vtool t1" style="align-self:flex-start;margin:0 0 10px"><span class="ok">✓</span> create_booking · Elena Conti · 2p · 20:30</div>'
+      +'<div class="floor"><div class="tbl busy">T1<span class="cap2">2p</span></div><div class="tbl" data-res>T2<div class="resv" style="opacity:0"><b>Elena Conti</b><span>20:30 · 2p</span></div><span class="cap2">2p</span></div><div class="tbl busy">T3<span class="cap2">4p</span></div>'
+      +'<div class="tbl busy">T4<span class="cap2">2p</span></div><div class="tbl">T5<span class="cap2">6p</span></div><div class="tbl busy">T6<span class="cap2">2p</span></div></div>'
+      +'<div class="okpop okvoice" style="opacity:0">🎙 Prenotazione a voce · nessuno ha risposto a mano</div></div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.from(q(r,'.t1'),{y:-8,opacity:0,duration:.4,ease:'power3.out'})
+        .from(qa(r,'.tbl'),{scale:.6,opacity:0,stagger:.05,ease:'back.out(1.7)',duration:.36},'+=.05')
+        .to(q(r,'[data-res]'),{borderColor:'transparent',duration:.01},'+=.15')
+        .to(q(r,'[data-res] .resv'),{opacity:1,duration:.01})
+        .from(q(r,'[data-res] .resv'),{scale:.5,opacity:0,ease:'back.out(1.9)',duration:.55})
+        .to(q(r,'.okvoice'),{opacity:1,duration:.01},'+=.15').from(q(r,'.okvoice'),{y:8,opacity:0,duration:.4});
+      return tl; } },
+
+  { act:'Arrivo', tag:'Walk-in · arrivo', actor:'staff', actorLabel:'Staff · walk-in', label:'Arrivano senza prenotazione', sub:'Due persone, al volo', hold:4600,
+    html:'<div class="sala"><h4><span>Sala · gestione tavoli</span><span class="pinhint">staff</span></h4>'
+      +'<div class="okpop wiin" style="opacity:0;color:var(--lilac);background:rgba(201,169,233,.1);border-color:var(--border)">👥 2 persone al bancone — senza prenotazione</div>'
+      +'<div class="floor" style="margin-top:11px"><div class="tbl busy">T1<span class="cap2">2p</span></div><div class="tbl busy">T2<span class="cap2">4p</span></div><div class="tbl">T3<span class="cap2">4p</span></div>'
+      +'<div class="tbl busy">T4<span class="cap2">2p</span></div><div class="tbl">T5<span class="cap2">6p</span></div><div class="tbl busy">T6<span class="cap2">2p</span></div></div></div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.from(qa(r,'.tbl'),{scale:.6,opacity:0,stagger:.05,ease:'back.out(1.7)',duration:.36})
+        .to(q(r,'.wiin'),{opacity:1,duration:.01},'+=.1').from(q(r,'.wiin'),{y:-10,opacity:0,duration:.4,ease:'power3.out'});
+      return tl; } },
+
+  { act:'Arrivo', tag:'Walk-in · sceglie', actor:'staff', actorLabel:'Staff · walk-in', label:'Sceglie un tavolo libero', sub:'Il sistema mostra cosa è libero', hold:5000,
+    html:'<div class="sala"><h4><span>Sala · gestione tavoli</span><span class="pinhint">staff</span></h4>'
+      +'<div class="floor" style="margin-top:4px"><div class="tbl busy">T1<span class="cap2">2p</span></div><div class="tbl busy">T2<span class="cap2">4p</span></div><div class="tbl" data-wi>T3<span class="cap2">4p</span></div>'
+      +'<div class="tbl busy">T4<span class="cap2">2p</span></div><div class="tbl" data-free>T5<span class="cap2">6p</span></div><div class="tbl busy">T6<span class="cap2">2p</span></div></div>'
+      +'<div class="okpop wipick" style="opacity:0">Tavoli liberi: 3 e 5 · tocca per sedere</div></div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.from(qa(r,'.tbl'),{opacity:0,y:6,duration:.25})
+        .to(q(r,'.wipick'),{opacity:1,duration:.01},'+=.05').from(q(r,'.wipick'),{y:8,opacity:0,duration:.35})
+        .to([q(r,'[data-wi]'),q(r,'[data-free]')],{scale:1.06,duration:.32,yoyo:true,repeat:2,transformOrigin:'center',ease:'sine.inOut'})
+        .add(function(){ q(r,'[data-wi]').classList.add('tap'); },'+=.05')
+        .to(q(r,'[data-wi]'),{scale:1.08,duration:.16,yoyo:true,repeat:1,transformOrigin:'center'});
+      return tl; } },
+
+  { act:'Arrivo', tag:'Walk-in · seduti', actor:'staff', actorLabel:'Staff · walk-in', label:'Seduti, pronti a ordinare', sub:'Tavolo occupato in un tocco', hold:5000,
+    html:'<div class="sala"><h4><span>Sala · gestione tavoli</span><span class="pinhint">staff</span></h4>'
+      +'<div class="floor" style="margin-top:4px"><div class="tbl busy">T1<span class="cap2">2p</span></div><div class="tbl busy">T2<span class="cap2">4p</span></div><div class="tbl" data-wi>T3<div class="resv wiov" style="opacity:0"><b>Walk-in</b><span>2p · ora</span></div><span class="cap2">4p</span></div>'
+      +'<div class="tbl busy">T4<span class="cap2">2p</span></div><div class="tbl">T5<span class="cap2">6p</span></div><div class="tbl busy">T6<span class="cap2">2p</span></div></div>'
+      +'<div class="okpop wiok" style="opacity:0">✓ Seduti al Tavolo 3 · pronti a ordinare</div></div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.from(qa(r,'.tbl'),{opacity:0,duration:.2})
+        .to(q(r,'[data-wi] .wiov'),{opacity:1,duration:.01},'+=.15')
+        .from(q(r,'[data-wi] .wiov'),{y:-18,scale:.6,opacity:0,ease:'bounce.out',duration:.7})
+        .to(q(r,'.wiok'),{opacity:1,duration:.01},'+=.1').from(q(r,'.wiok'),{y:8,opacity:0,duration:.4});
+      return tl; } },
+
+  { act:'Ordine', tag:'QR', actor:'cliente', actorLabel:'Cliente', label:'Inquadra il QR', sub:'Al tavolo, senza scaricare app',
+    html:'<div class="phone"><div class="scr"><div class="sbar"><span>20:38</span><span class="r">5G ·  84%</span></div><div class="scrtop">Tavolo 7<span class="lang">IT/EN</span></div>'
+      +'<div class="qrbox"><div class="qr"><div class="fp tl"></div><div class="fp tr"></div><div class="fp bl"></div><div class="beamline"></div></div><div class="qrlabel">Inquadra il QR sul tavolo</div></div></div></div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.from(q(r,'.phone'),{y:18,opacity:0,duration:.5,ease:'power3.out'})
+        .fromTo(q(r,'.beamline'),{top:'8%'},{top:'80%',duration:1,repeat:1,yoyo:true,ease:'sine.inOut'},'>-.1')
+        .from(q(r,'.qrlabel'),{opacity:0,y:8,duration:.4},'<');
+      return tl; } },
+
+  { act:'Ordine', tag:'Approva', actor:'staff', actorLabel:'Staff', label:'Lo staff approva il tavolo', sub:'Un tap e il tavolo è aperto',
+    html:'<div class="panelm"><h4><span>Console di sala · staff</span><span class="pinhint">PIN 2468</span></h4>'
+      +'<div class="lrow r-req"><span>🔔 <b>Tavolo 7</b> chiede di ordinare</span></div>'
+      +'<div style="display:flex;gap:8px;margin:11px 0"><div class="btnbig appr" style="flex:1">Approva il tavolo</div><div class="ctrl" style="flex:0 0 auto;height:auto;padding:12px 15px;color:var(--text3)">Rifiuta</div></div>'
+      +'<div class="okpop r-open" style="opacity:0;font-size:14px">✓ Tavolo 7 approvato</div></div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.from(q(r,'.r-req'),{y:-12,opacity:0,duration:.45,ease:'power3.out'})
+        .from(q(r,'.appr'),{opacity:0,y:8,duration:.3})
+        .to(q(r,'.appr'),{scale:.94,duration:.12,yoyo:true,repeat:1,ease:'power1.inOut'},'+=.5')
+        .to(q(r,'.r-open'),{opacity:1,duration:.01})
+        .from(q(r,'.r-open'),{y:10,opacity:0,scale:.9,ease:'back.out(1.7)',duration:.5});
+      return tl; } },
+
+  { act:'Ordine', tag:'Menu', actor:'cliente', actorLabel:'Menu · con foto', label:'Il menu con le foto', sub:'Aggiungi una foto a ogni piatto', hold:6000,
+    html:'<div class="phone"><div class="scr"><div class="sbar"><span>20:39</span><span class="r">5G ·  84%</span></div>'
+      +'<div class="scrtop">Menu · Tavolo 7<span class="lang">IT/EN</span></div>'
+      +'<div class="cats" style="padding:7px 12px 3px"><span class="catpill on">Primi</span><span class="catpill">Secondi</span><span class="catpill">Dolci</span></div>'
+      +'<div style="flex:1;padding:2px 12px;display:flex;flex-direction:column;gap:6px">'
+      +'<div class="mi" style="display:flex;align-items:center;gap:9px;background:var(--surface2);border:1px solid var(--soft);border-radius:10px;padding:3px 9px;font-size:12px"><span class="mthumb"><span class="addf">＋</span><span class="pic p1" style="opacity:0">🍝</span></span><span style="flex:1">Pici cacio e pepe</span><b>11€</b></div>'
+      +'<div class="mi" style="display:flex;align-items:center;gap:9px;background:var(--surface2);border:1px solid var(--soft);border-radius:10px;padding:3px 9px;font-size:12px"><span class="mthumb">🥩</span><span style="flex:1">Tagliata di manzo</span><b>18€</b></div>'
+      +'<div class="mi" style="display:flex;align-items:center;gap:9px;background:var(--surface2);border:1px solid var(--soft);border-radius:10px;padding:3px 9px;font-size:12px"><span class="mthumb">🧀</span><span style="flex:1">Tagliere della casa</span><b>12€</b></div>'
+      +'</div>'
+      +'<div class="cartbar"><span>Aggiungi al carrello</span><span class="badge2 mc">0</span></div>'
+      +'</div></div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.from(q(r,'.phone'),{y:16,opacity:0,duration:.45,ease:'power3.out'})
+        .from(qa(r,'.catpill'),{y:-8,opacity:0,stagger:.05,duration:.28},'-=.1')
+        .from(qa(r,'.mi'),{x:-12,opacity:0,stagger:.09,duration:.34})
+        .to(q(r,'.p1'),{opacity:1,duration:.4,ease:'power2.out'},'+=.2')
+        .from(q(r,'.p1'),{scale:.3,ease:'back.out(1.9)'},'<')
+        .to(q(r,'.mi .addf'),{opacity:0,duration:.25},'<')
+        .add(function(){ count(q(r,'.mc'),2,.5); },'+=.1')
+        .fromTo(q(r,'.cartbar'),{opacity:.55},{opacity:1,duration:.3});
+      return tl; } },
+
+  { act:'Ordine', tag:'Cliente', actor:'cliente', actorLabel:'Cliente · da solo', label:'Ordina il cliente', sub:'In autonomia, dal suo telefono',
+    html:'<div class="duo"><div class="mphone"><div class="ms"><div class="mt">Menu · Tavolo 7</div>'
+      +'<div class="mrow"><span>Pici cacio e pepe</span><span class="pz">11€</span></div>'
+      +'<div class="mrow"><span>Tagliata di manzo</span><span class="pz">18€</span></div>'
+      +'<div class="mrow"><span>Calice di rosso</span><span class="pz">5€</span></div>'
+      +'<div class="send">Invia ordine</div></div></div>'
+      +'<div class="arr">➜</div>'
+      +'<div class="kmon"><div class="kscreen"><div class="kh"><span>Cucina · KDS</span></div>'
+      +'<div class="empty">In attesa di comande…</div><div class="kding">● NUOVA</div>'
+      +'<div class="kt" style="opacity:0"><div class="ktt"><b>Tavolo 7</b><span>ora</span></div><div class="kc">Primi</div><div class="ktl">2× Pici cacio e pepe · senza pepe</div><div class="kc">Secondi</div><div class="ktl">1× Tagliata di manzo</div><div class="kc">Bevande</div><div class="ktl">2× Calice di rosso</div></div></div>'
+      +'<div class="kstand"></div><div class="kbase"></div></div>'
+      +'<div class="flyt">🧾 Tavolo 7</div></div>',
+    anim:function(r){ var tl=G.timeline(); var fly=q(r,'.flyt');
+      tl.from(qa(r,'.mrow'),{x:-12,opacity:0,stagger:.09,duration:.38,ease:'power3.out'})
+        .to(q(r,'.send'),{scale:1.05,duration:.16,yoyo:true,repeat:1,transformOrigin:'center'},'+=.2')
+        .to(fly,{opacity:1,scale:1,duration:.2,ease:'back.out(1.7)'})
+        .to(fly,{x:188,y:-150,rotate:-8,duration:.78,ease:'power1.inOut'})
+        .to(fly,{opacity:0,scale:.8,duration:.15})
+        .to(q(r,'.kding'),{opacity:1,duration:.01})
+        .from(q(r,'.kding'),{scale:0,ease:'back.out(2)',duration:.35})
+        .to(q(r,'.empty'),{opacity:0,duration:.2},'<')
+        .fromTo(q(r,'.kt'),{opacity:0,y:10},{opacity:1,y:0,duration:.4},'<');
+      return tl; } },
+
+  { act:'Ordine', tag:'Cameriere', actor:'staff', actorLabel:'Cameriere · per il cliente', label:'Ordina il cameriere', sub:'Ordina lui al posto del cliente',
+    html:'<div class="duo"><div class="mphone"><div class="ms"><div class="mt">Cameriere · per Tavolo 4</div>'
+      +'<div class="mrow"><span>Tagliere della casa</span><span class="pz">×1</span></div>'
+      +'<div class="mrow"><span>Pici cacio e pepe</span><span class="pz">×2</span></div>'
+      +'<div class="mrow"><span>Acqua naturale</span><span class="pz">×2</span></div>'
+      +'<div class="send">Manda in cucina</div></div></div>'
+      +'<div class="arr">➜</div>'
+      +'<div class="kmon"><div class="kscreen"><div class="kh"><span>Cucina · KDS</span></div>'
+      +'<div class="empty">In attesa di comande…</div><div class="kding">● NUOVA</div>'
+      +'<div class="kt" style="opacity:0"><div class="ktt"><b>Tavolo 4</b><span>ora</span></div><div class="kc">Antipasti</div><div class="ktl">1× Tagliere della casa</div><div class="kc">Primi</div><div class="ktl">2× Pici cacio e pepe</div><div class="kc">Bevande</div><div class="ktl">2× Acqua naturale</div></div></div>'
+      +'<div class="kstand"></div><div class="kbase"></div></div>'
+      +'<div class="flyt">🧾 Tavolo 4</div></div>',
+    anim:function(r){ var tl=G.timeline(); var fly=q(r,'.flyt');
+      tl.from(qa(r,'.mrow'),{x:-12,opacity:0,stagger:.09,duration:.38,ease:'power3.out'})
+        .to(q(r,'.send'),{scale:1.05,duration:.16,yoyo:true,repeat:1,transformOrigin:'center'},'+=.2')
+        .to(fly,{opacity:1,scale:1,duration:.2,ease:'back.out(1.7)'})
+        .to(fly,{x:188,y:-150,rotate:-8,duration:.78,ease:'power1.inOut'})
+        .to(fly,{opacity:0,scale:.8,duration:.15})
+        .to(q(r,'.kding'),{opacity:1,duration:.01})
+        .from(q(r,'.kding'),{scale:0,ease:'back.out(2)',duration:.35})
+        .to(q(r,'.empty'),{opacity:0,duration:.2},'<')
+        .fromTo(q(r,'.kt'),{opacity:0,y:10},{opacity:1,y:0,duration:.4},'<');
+      return tl; } },
+
+  { act:'Ordine', tag:'Insieme', actor:'cucina', actorLabel:'Comande · anti-caos', label:'In cucina solo quando ordinano tutti', sub:'Niente comande spezzettate: lo chef le riceve insieme', hold:8200,
+    html:'<div style="display:flex;align-items:center;gap:22px;position:relative">'
+      +'<div class="panelm" style="width:252px">'
+      +'<h4><span>Tavolo 7 · 4 coperti</span><span class="pinhint">comande</span></h4>'
+      +'<div class="srow lrow" data-s="1"><span>Posto 1</span><span class="sdot">✓ inviato</span></div>'
+      +'<div class="srow lrow" data-s="2"><span>Posto 2</span><span class="sdot">✓ inviato</span></div>'
+      +'<div class="srow lrow" data-s="3"><span>Posto 3</span><span class="sdot">✓ inviato</span></div>'
+      +'<div class="srow lrow" data-s="4"><span>Posto 4</span><span class="sdot wait">in attesa…</span></div>'
+      +'<div class="okpop cnt" style="opacity:0;margin-top:10px">3 / 4 hanno inviato</div></div>'
+      +'<div style="color:var(--faint);font-size:17px">➜</div>'
+      +'<div class="kmon"><div class="kscreen"><div class="kh"><span>Cucina · KDS</span></div>'
+      +'<div class="empty">In attesa che ordinino tutti…</div><div class="kding">● NUOVA</div>'
+      +'<div class="kt" style="opacity:0"><div class="ktt"><b>Tavolo 7</b><span>ora</span></div><div class="kc">Primi</div><div class="ktl">2× Pici cacio e pepe</div><div class="kc">Secondi</div><div class="ktl">2× Tagliata di manzo</div></div></div>'
+      +'<div class="kstand"></div><div class="kbase"></div></div>'
+      +'<div class="flyt" style="left:80px">🧾 Comanda unica · Tavolo 7</div></div>',
+    anim:function(r){ var tl=G.timeline(); var fly=q(r,'.flyt');
+      var s4=q(r,'[data-s="4"] .sdot'), cnt=q(r,'.cnt');
+      tl.from(q(r,'.panelm'),{y:14,opacity:0,duration:.4,ease:'power3.out'})
+        .from(qa(r,'.srow'),{x:-10,opacity:0,stagger:.12,duration:.3})
+        .to(cnt,{opacity:1,duration:.01}).from(cnt,{y:6,opacity:0,duration:.3})
+        .to(s4,{opacity:.45,duration:.4,yoyo:true,repeat:3,ease:'sine.inOut'})
+        .add(function(){ if(s4){ s4.textContent='✓ inviato'; s4.classList.remove('wait'); } if(cnt){ cnt.textContent='4 / 4 — parte in cucina'; } })
+        .to(q(r,'[data-s="4"]'),{scale:1.04,duration:.16,yoyo:true,repeat:1,transformOrigin:'center'})
+        .to(fly,{opacity:1,scale:1,duration:.2,ease:'back.out(1.7)'})
+        .to(fly,{x:300,y:-118,rotate:-6,duration:.85,ease:'power1.inOut'})
+        .to(fly,{opacity:0,scale:.8,duration:.15})
+        .to(q(r,'.kding'),{opacity:1,duration:.01})
+        .from(q(r,'.kding'),{scale:0,ease:'back.out(2)',duration:.35})
+        .to(q(r,'.empty'),{opacity:0,duration:.2},'<')
+        .fromTo(q(r,'.kt'),{opacity:0,y:10},{opacity:1,y:0,duration:.4},'<');
+      return tl; } },
+
+  { act:'Cucina', tag:'Cucina', actor:'cucina', actorLabel:'Cucina', label:'In cucina (KDS)', sub:'Ogni piatto: in prep, pronto, servito', hold:6400,
+    html:'<div class="kds"><div class="kdsh"><span>Cucina · KDS</span><span>Tavolo 7</span></div>'
+      +'<div class="ticket"><div class="tt"><span class="tav">Tavolo 7</span><span>20:41</span></div>'
+      +'<div class="crs co0"><div class="cn"><span class="q">1×</span> Tagliere <small>Antipasti</small></div><span class="chip ch0">In attesa</span></div>'
+      +'<div class="crs co1"><div class="cn"><span class="q">2×</span> Pici <small>Primi</small></div><span class="chip ch1">In attesa</span></div>'
+      +'<div class="crs co2"><div class="cn"><span class="q">1×</span> Tagliata <small>Secondi</small></div><span class="chip ch2">In attesa</span></div>'
+      +'</div></div>',
+    anim:function(r){ var tl=G.timeline();
+      function set(sel,txt,cls){ var c=q(r,sel); c.classList.remove('amber','green','muted'); c.classList.add(cls); c.textContent=txt; }
+      tl.from(qa(r,'.crs'),{x:-12,opacity:0,stagger:.11,duration:.4,ease:'power3.out'})
+        .add(function(){ set('.ch0','In preparazione','amber'); }).to(q(r,'.ch0'),{scale:1.08,duration:.16,yoyo:true,repeat:1,ease:'back.out(1.7)'})
+        .add(function(){ set('.ch0','Pronto','green'); },'+=.5').to(q(r,'.ch0'),{scale:1.08,duration:.16,yoyo:true,repeat:1,ease:'back.out(1.7)'})
+        .add(function(){ set('.ch0','Servito ✓','muted'); q(r,'.co0').classList.add('served'); },'+=.5')
+        .add(function(){ set('.ch1','In preparazione','amber'); },'+=.25').to(q(r,'.ch1'),{scale:1.08,duration:.16,yoyo:true,repeat:1,ease:'back.out(1.7)'})
+        .add(function(){ set('.ch1','Pronto','green'); },'+=.5')
+        .add(function(){ set('.ch2','In preparazione','amber'); },'+=.35');
+      return tl; } },
+
+  { act:'Cassa', tag:'Cassa', actor:'cassa', actorLabel:'Cassa', label:'Chiudi e batti il conto', sub:'Tavolo chiuso, conto in cassa',
+    html:'<div class="panelm"><h4><span>Cassa · chiusura Tavolo 7</span><span class="pinhint">staff</span></h4>'
+      +'<div class="btnbig closeb">Chiudi il tavolo</div>'
+      +'<div class="scontrino" style="opacity:0"><div class="sh">TRATTORIA DA BOOSTED</div>'
+      +'<div class="sl"><span>2× Pici cacio e pepe</span><span>22,00</span></div>'
+      +'<div class="sl"><span>1× Tagliata di manzo</span><span>18,00</span></div>'
+      +'<div class="sl"><span>2× Calice di rosso</span><span>10,00</span></div>'
+      +'<div class="sl tt"><span>TOTALE</span><span>€ 50,00</span></div>'
+      +'<div class="sf">Grazie · scontrino n. 042 · 22:14</div></div></div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.to(q(r,'.closeb'),{scale:.94,duration:.12,yoyo:true,repeat:1,ease:'power1.inOut'})
+        .to(q(r,'.scontrino'),{opacity:1,duration:.01},'+=.15')
+        .from(q(r,'.scontrino'),{scaleY:0,duration:.6,ease:'power2.out'})
+        .from(qa(r,'.scontrino .sl'),{opacity:0,y:6,stagger:.08,duration:.3},'-=.15');
+      return tl; } },
+
+  { act:'Numeri', tag:'Incassi', actor:'titolare', actorLabel:'Titolare', label:'Incassi in tempo reale', sub:'Il titolare vede tutto, da subito',
+    html:'<div class="dash"><div class="dl">Incassi di oggi</div>'
+      +'<div class="num"><span class="cur">€</span><span class="cv">0</span></div><div class="sub">▲ 18% rispetto a ieri</div>'
+      +'<div class="kpis"><div class="kpi"><b class="k1">0</b><small>coperti</small></div><div class="kpi"><b>€ <span class="k2">0</span></b><small>scontrino medio</small></div></div>'
+      +'<div class="bars"><i style="height:40%"></i><i style="height:62%"></i><i style="height:48%"></i><i style="height:80%"></i><i style="height:70%"></i><i style="height:95%"></i></div>'
+      +'<div class="barx"><span>L</span><span>M</span><span>M</span><span>G</span><span>V</span><span>S</span></div>'
+      +'<div class="mini"><span>Piatto più venduto</span><b>Pici cacio e pepe ×34</b></div></div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.from(qa(r,'.bars i'),{scaleY:0,transformOrigin:'bottom',stagger:.06,duration:.6,ease:'power3.out'})
+        .add(function(){ count(q(r,'.cv'),1240,1.1); },'<')
+        .add(function(){ count(q(r,'.k1'),38,1); count(q(r,'.k2'),33,1); },'+=.15')
+        .from(q(r,'.mini'),{opacity:0,y:8,duration:.4},'-=.2');
+      return tl; } },
+
+  { cover:true, hold:4200,
+    html:'<div class="cover">'+LOGO+'<h1>Un solo sistema. Tutto collegato.</h1><p>Dal cliente alla cucina, fino ai tuoi numeri.</p><div class="bl">Boosted · automazioni su misura</div></div>',
+    anim:function(r){ var tl=G.timeline(); tl.from(q(r,'.clogo'),{scale:.6,opacity:0,ease:'back.out(1.7)',duration:.6}).from(q(r,'h1'),{opacity:0,y:14,duration:.5},'-=.1').from(q(r,'p'),{opacity:0,y:10,duration:.4},'-=.2').from(q(r,'.bl'),{opacity:0,duration:.5}); return tl; } },
+ ],
+
+ ecom:[
+  { cover:true, hold:3400,
+    html:'<div class="cover">'+LOGO+'<div class="ck">Come funziona</div><h1>Dal negozio al pacco, senza intoppi.</h1><p>Online e in negozio, nello stesso sistema.</p></div>',
+    anim:function(r){ var tl=G.timeline(); tl.from(q(r,'.clogo'),{scale:.6,opacity:0,ease:'back.out(1.7)',duration:.6}).from(q(r,'.ck'),{opacity:0,y:8,duration:.4},'-=.1').from(q(r,'h1'),{opacity:0,y:14,duration:.5}).from(q(r,'p'),{opacity:0,y:10,duration:.4},'-=.2'); return tl; } },
+
+  { act:'Acquisto', tag:'Negozio', actor:'cliente', actorLabel:'Cliente', label:'Il cliente sceglie', sub:'Sfoglia il negozio e aggiunge',
+    html:'<div class="shop"><span class="carticon">🛒<span class="cbadge">1</span></span><div class="cats"><span class="catpill on">Tutti</span><span class="catpill">Abbigliamento</span><span class="catpill">Casa</span></div>'
+      +'<div class="grid2"><div class="prod felpa"><div class="ph">🧥</div><b>Felpa con cappuccio</b><div class="pz">49,90€</div></div>'
+      +'<div class="prod"><span class="taglow">ultimi 2</span><div class="ph">⌚</div><b>Orologio minimal</b><div class="pz">119€</div></div>'
+      +'<div class="prod"><div class="ph">🕯️</div><b>Candela</b><div class="pz">18,50€</div></div>'
+      +'<div class="prod"><div class="ph">🎒</div><b>Zaino urbano</b><div class="pz">69€</div></div></div>'
+      +'<div class="fly">+1</div></div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.from(qa(r,'.prod'),{y:16,opacity:0,stagger:.07,duration:.4,ease:'power3.out'})
+        .add(function(){ q(r,'.felpa').classList.add('pick'); },'+=.2')
+        .to(q(r,'.felpa'),{y:-6,duration:.2,yoyo:true,repeat:1})
+        .fromTo(q(r,'.fly'),{opacity:0,left:'18%',top:'58%',scale:.7},{opacity:1,scale:1,duration:.2})
+        .to(q(r,'.fly'),{left:'90%',top:'-4%',opacity:0,duration:.8,ease:'power2.in'})
+        .fromTo(q(r,'.cbadge'),{opacity:0,scale:0},{opacity:1,scale:1,ease:'back.out(2.4)',duration:.4},'-=.2');
+      return tl; } },
+
+  { act:'Acquisto', tag:'Taglia', actor:'cliente', actorLabel:'Cliente', label:'Sceglie taglia e colore', sub:'Ogni variante ha la sua giacenza',
+    html:'<div class="bigprod"><div class="ph">🧥</div><div class="nm">Felpa con cappuccio</div><div class="pz">49,90€</div>'
+      +'<div class="ds">Cotone felpato · SKU AB-HOO-01</div>'
+      +'<div class="sizes"><div class="sz">S<small>4 pz</small></div><div class="sz selx">M<small>6 pz</small></div><div class="sz">L<small>3 pz</small></div><div class="sz" style="opacity:.45">XL<small>0 pz</small></div></div>'
+      +'<div class="cartbar" style="border-radius:11px;margin-top:14px"><span>Aggiungi · taglia M</span><span class="badge2 add">1</span></div></div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.from(q(r,'.bigprod'),{y:16,opacity:0,duration:.45,ease:'power3.out'})
+        .from(qa(r,'.sz'),{y:10,opacity:0,stagger:.07,duration:.3})
+        .add(function(){ q(r,'.selx').classList.add('sel'); })
+        .to(q(r,'.selx'),{scale:1.06,duration:.16,yoyo:true,repeat:1,ease:'back.out(1.7)'})
+        .from(q(r,'.cartbar'),{opacity:0,y:8,duration:.35},'+=.1')
+        .fromTo(q(r,'.add'),{scale:0,opacity:0},{scale:1,opacity:1,ease:'back.out(2.4)',duration:.4},'-=.1');
+      return tl; } },
+
+  { act:'Acquisto', tag:'Carrello', actor:'cliente', actorLabel:'Cliente', label:'Apre il carrello', sub:'Rivede e va al checkout',
+    html:'<div class="panelm"><h4><span>Il tuo carrello</span><span>🛒 1 articolo</span></h4>'
+      +'<div class="crt lrow"><span><b>Felpa con cappuccio</b><br><span class="muted">Taglia M · ×1</span></span><span>49,90€</span></div>'
+      +'<div class="lrow tot"><span>Subtotale</span><span class="e">49,90€</span></div>'
+      +'<div class="btnbig gochk">Vai al checkout →</div></div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.from(q(r,'.crt'),{x:-14,opacity:0,duration:.45,ease:'power3.out'})
+        .from(q(r,'.tot'),{opacity:0,y:6,duration:.3})
+        .to(q(r,'.gochk'),{scale:1.04,duration:.16,yoyo:true,repeat:1,transformOrigin:'center'},'+=.35');
+      return tl; } },
+
+  { act:'Acquisto', tag:'Pagamento', actor:'cliente', actorLabel:'Cliente', label:'Dati e pagamento', sub:'Inserisce, paga, fatto',
+    html:'<div class="panelm"><h4><span>Checkout</span><span>🛒 Felpa · M</span></h4>'
+      +'<div class="frm" style="padding:0"><div class="fl fr"><span class="muted">Nome</span><b>Giulia Bianchi</b></div>'
+      +'<div class="fl fr"><span class="muted">Indirizzo</span><b>Via Roma 1, Arezzo</b></div>'
+      +'<div class="fl fr"><span class="muted">Carta</span><b>4242 4242 · Visa</b></div></div>'
+      +'<div class="btnbig payb" style="margin-top:11px">Paga 49,90€</div>'
+      +'<div class="okpop payok" style="opacity:0">✓ Pagamento approvato</div></div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.from(qa(r,'.fr'),{x:-12,opacity:0,stagger:.11,duration:.4,ease:'power3.out'})
+        .to(q(r,'.payb'),{scale:.94,duration:.12,yoyo:true,repeat:1,ease:'power1.inOut'},'+=.3')
+        .to(q(r,'.payok'),{opacity:1,duration:.01})
+        .from(q(r,'.payok'),{scale:.85,y:8,opacity:0,ease:'back.out(1.7)',duration:.5});
+      return tl; } },
+
+  { act:'Acquisto', tag:'Conferma', actor:'cliente', actorLabel:'Cliente', label:'Ordine confermato', sub:'Email e tracking per il cliente',
+    html:'<div class="panelm"><h4><span>Ordine confermato</span><span style="color:var(--green)">#1001</span></h4>'
+      +'<div class="maillike"><div class="ml-h">✉️ a giulia.bianchi@email.it</div><div class="ml-b">Ordine <b>#1001</b> confermato.</div></div>'
+      +'<div class="trk"><span class="d d0"></span><span class="ln"><i></i></span><span class="d d1"></span><span class="ln"><i></i></span><span class="d d2"></span></div>'
+      +'<div class="trklab"><span>pagato</span><span>spedito</span><span>consegnato</span></div>'
+      +'<div class="trackn">🔎 Segui il tuo ordine · /o/AB12CD</div></div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.from(q(r,'.maillike'),{y:-10,opacity:0,duration:.5,ease:'power3.out'})
+        .from(qa(r,'.trk .d'),{scale:0,stagger:.12,ease:'back.out(2)',duration:.4})
+        .add(function(){ q(r,'.d0').classList.add('on'); })
+        .to(qa(r,'.trk .ln i')[0],{width:'100%',duration:.5,ease:'power2.inOut'})
+        .add(function(){ q(r,'.d1').classList.add('on'); })
+        .from(q(r,'.trackn'),{opacity:0,y:8,duration:.4});
+      return tl; } },
+
+  { act:'Evasione', tag:'Spedizione', actor:'magazzino', actorLabel:'Magazzino', label:'Evasione e spedizione', sub:'Prep → pronto → spedito + etichetta', hold:6200,
+    html:'<div class="panelm"><h4><span>Magazzino · addetto</span><span>Sendcloud</span></h4>'
+      +'<div class="lrow"><span><b>#1001</b> · Felpa M</span><span style="color:var(--text3)">da evadere</span></div>'
+      +'<div class="flow2"><span class="chip c0">In preparazione</span><span class="parr">›</span><span class="chip c1">Pronto</span><span class="parr">›</span><span class="chip c2">Spedito</span></div>'
+      +'<div class="btnbig labelb">🏷️ Crea etichetta (1 click)</div>'
+      +'<div class="shipwrap"><div class="etichetta"><b>Sendcloud</b> · #1001<div>G. Bianchi — Arezzo</div><div class="bc"></div></div><div class="box">📦</div><div class="boxchk">✓</div></div></div>',
+    anim:function(r){ var tl=G.timeline(); var chips=[q(r,'.c0'),q(r,'.c1'),q(r,'.c2')];
+      tl.add(function(){ setStates(chips,0,'amber'); })
+        .from(chips[0],{opacity:0,y:8,duration:.3})
+        .add(function(){ setStates(chips,1,'green'); },'+=.8')
+        .add(function(){ setStates(chips,2,'green'); },'+=.8')
+        .to(q(r,'.labelb'),{scale:.94,duration:.12,yoyo:true,repeat:1,ease:'power1.inOut'},'+=.2')
+        .fromTo(q(r,'.etichetta'),{scaleY:0,opacity:0},{scaleY:1,opacity:1,duration:.5,ease:'power2.out'})
+        .to(q(r,'.etichetta'),{x:120,y:18,rotate:-6,duration:.7,ease:'power1.inOut'},'+=.2')
+        .fromTo(q(r,'.boxchk'),{scale:0,opacity:0},{scale:1,opacity:1,ease:'back.out(1.7)',duration:.4},'-=.1');
+      return tl; } },
+
+  { act:'Evasione', tag:'Magazzino', actor:'magazzino', actorLabel:'Magazzino', label:'Magazzino automatico', sub:'Le giacenze si scalano da sole',
+    html:'<div class="panelm"><h4><span>Magazzino · giacenze</span><span>auto</span></h4>'
+      +'<div class="lrow sr"><span>Felpa · taglia M</span><span><span class="cut">6</span> → <b style="color:var(--lilac)">5</b></span></div><div class="stbar"><i class="st1" style="width:83%"></i></div>'
+      +'<div class="lrow sr"><span>Orologio minimal</span><span class="taglow" style="position:static">ultimi 2</span></div>'
+      +'<div class="lrow sr"><span>Set spazzole</span><span style="color:var(--red);font-weight:700">esaurito</span></div>'
+      +'<div class="okpop rir" style="opacity:0;color:var(--amber-t);background:rgba(224,150,42,.12);border-color:rgba(224,150,42,.34)">⚠︎ Avviso: riordina 2 prodotti</div></div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.from(qa(r,'.sr'),{opacity:0,y:8,stagger:.1,duration:.35,ease:'power3.out'})
+        .fromTo(q(r,'.st1'),{width:'100%'},{width:'83%',duration:.5,ease:'power2.out'},'-=.2')
+        .to(q(r,'.rir'),{opacity:1,duration:.01})
+        .from(q(r,'.rir'),{y:8,opacity:0,scale:.9,ease:'back.out(1.7)',duration:.45});
+      return tl; } },
+
+  { act:'Negozio', tag:'Vendita', actor:'magazzino', actorLabel:'Negozio · banco', label:'Vendita in negozio', sub:'Scanner barcode o AI, e scala il magazzino', hold:6000,
+    html:'<div class="scanbox"><h4 style="margin-bottom:12px"><span>Cassa · vendita al banco</span></h4>'
+      +'<div class="modes"><span class="mode m0 on">Barcode</span><span class="mode m1">Foto · AI</span></div>'
+      +'<div class="scanview"><div class="barcode bc"></div><div class="photo ph" style="display:none">🧥</div><div class="sbeam"></div></div>'
+      +'<div class="okpop res" style="opacity:0;margin-top:12px">✓ Felpa · M riconosciuta</div></div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.from(q(r,'.scanbox'),{opacity:0,y:12,duration:.4,ease:'power3.out'})
+        .fromTo(q(r,'.sbeam'),{top:'8px'},{top:'80px',duration:.9,repeat:1,yoyo:true,ease:'sine.inOut'})
+        .to(q(r,'.res'),{opacity:1,duration:.01})
+        .from(q(r,'.res'),{opacity:0,y:8,duration:.35})
+        .add(function(){ q(r,'.m0').classList.remove('on'); q(r,'.m1').classList.add('on'); q(r,'.bc').style.display='none'; q(r,'.ph').style.display='grid'; q(r,'.res').textContent='✓ Riconosciuta da foto · venduta · stock −1'; },'+=.7')
+        .from(q(r,'.ph'),{scale:.8,opacity:0,duration:.4,ease:'back.out(1.6)'})
+        .fromTo(q(r,'.sbeam'),{top:'8px'},{top:'80px',duration:.8,ease:'sine.inOut'});
+      return tl; } },
+
+  { act:'Numeri', tag:'Incassi', actor:'titolare', actorLabel:'Titolare', label:'Incassi in tempo reale', sub:'Online e negozio, per il titolare',
+    html:'<div class="dash"><div class="dl">Incassi di oggi</div>'
+      +'<div class="num"><span class="cur">€</span><span class="cv">0</span></div><div class="sub">▲ 24% · online + negozio</div>'
+      +'<div class="kpis"><div class="kpi"><b class="k1">0</b><small>ordini</small></div><div class="kpi"><b>€ <span class="k2">0</span></b><small>scontrino medio</small></div></div>'
+      +'<div class="bars"><i style="height:50%"></i><i style="height:35%"></i><i style="height:68%"></i><i style="height:55%"></i><i style="height:82%"></i><i style="height:95%"></i></div>'
+      +'<div class="barx"><span>L</span><span>M</span><span>M</span><span>G</span><span>V</span><span>S</span></div>'
+      +'<div class="mini"><span>Più venduto</span><b>Felpa con cappuccio ×27</b></div></div>',
+    anim:function(r){ var tl=G.timeline();
+      tl.from(qa(r,'.bars i'),{scaleY:0,transformOrigin:'bottom',stagger:.06,duration:.6,ease:'power3.out'})
+        .add(function(){ count(q(r,'.cv'),2860,1.1); },'<')
+        .add(function(){ count(q(r,'.k1'),41,1); count(q(r,'.k2'),70,1); },'+=.15')
+        .from(q(r,'.mini'),{opacity:0,y:8,duration:.4},'-=.2');
+      return tl; } },
+
+  { cover:true, hold:4200,
+    html:'<div class="cover">'+LOGO+'<h1>Un solo sistema. Tutto collegato.</h1><p>Dal negozio al magazzino, fino ai tuoi numeri.</p><div class="bl">Boosted · automazioni su misura</div></div>',
+    anim:function(r){ var tl=G.timeline(); tl.from(q(r,'.clogo'),{scale:.6,opacity:0,ease:'back.out(1.7)',duration:.6}).from(q(r,'h1'),{opacity:0,y:14,duration:.5},'-=.1').from(q(r,'p'),{opacity:0,y:10,duration:.4},'-=.2').from(q(r,'.bl'),{opacity:0,duration:.5}); return tl; } },
+ ],
+};
+
+/* ======================= PLAYER ======================= */
+var DEFAULT_HOLD=5200;
+var sys='qr', i=0, playing=true, timer=null, front='B', curTL=null, hovering=false;
+var layA=document.getElementById('layA'), layB=document.getElementById('layB'),
+    rail=document.getElementById('rail'), play=document.getElementById('play'),
+    timerEl=document.getElementById('timer'), scount=document.getElementById('scount');
+
+function list(){ return SCENES[sys]; }
+function contentList(){ var a=[]; list().forEach(function(s,gi){ if(!s.cover) a.push({gi:gi,s:s}); }); return a; }
+
+function buildRail(){
+  var cl=contentList(), html='', curAct=null, n=0;
+  cl.forEach(function(it){
+    if(it.s.act!==curAct){ if(curAct!==null) html+='</div></div>'; html+='<div class="actg" data-act="'+it.s.act+'"><div class="al">'+it.s.act+'</div><div class="nodes">'; curAct=it.s.act; }
+    n++;
+    html+='<button class="node" data-gi="'+it.gi+'" onclick="goto('+it.gi+')"><span class="num">'+n+'</span><span class="nlab">'+it.s.tag+'</span></button>';
+  });
+  if(curAct!==null) html+='</div></div>';
+  rail.innerHTML=html;
+}
+function paintRail(){
+  var nodes=qa(rail,'.node');
+  nodes.forEach(function(nd){ var gi=+nd.getAttribute('data-gi'); nd.classList.remove('on','done'); if(gi===i)nd.classList.add('on'); else if(gi<i)nd.classList.add('done'); });
+  qa(rail,'.actg').forEach(function(g){ var act=g.getAttribute('data-act'); g.classList.toggle('cur', list()[i] && list()[i].act===act); });
+  var cur=list()[i];
+  rail.classList.toggle('hidden', !!(cur && cur.cover));
+}
+
+function show(){
+  var sc=list()[i];
+  var back=(front==='A')?layB:layA, frontEl=(front==='A')?layA:layB;
+  var inner;
+  if(sc.cover){ inner=sc.html; }
+  else {
+    var dot=DOT[sc.actor]||'#C9A9E9';
+    inner='<div class="scene"><div class="badge">'+contentNum(i)+'</div>'+sc.html+'</div>'
+      +'<div class="cap"><div class="kick"><span class="adot" style="background:'+dot+'"></span>'+sc.actorLabel+'</div><h2>'+sc.label+'</h2><p>'+sc.sub+'</p></div>';
+  }
+  back.innerHTML='<div class="frame">'+inner+'</div>'; fit();
+  if(curTL){ try{curTL.progress(1).kill();}catch(e){} curTL=null; }
+  if(G){
+    G.killTweensOf([back,frontEl]);
+    if(RM){ G.set(frontEl,{opacity:0}); G.set(back,{opacity:1,scale:1}); }
+    else { G.set(back,{opacity:0,scale:1.03}); G.to(frontEl,{opacity:0,duration:.26,ease:'power2.in'}); G.to(back,{opacity:1,scale:1,duration:.44,ease:'power2.out',delay:.16}); }
+  } else { back.style.opacity=1; frontEl.style.opacity=0; }
+  front=(front==='A')?'B':'A';
+  if(G && sc.anim){ try{ curTL=sc.anim(back); if(RM){curTL.progress(1);} }catch(e){ curTL=null; } }
+  paintRail();
+  scount.textContent=(i+1)+' / '+list().length;
+  // timer
+  var hold=sc.hold||DEFAULT_HOLD;
+  document.documentElement.style.setProperty('--dur',(hold/1000)+'s');
+  timerEl.classList.remove('run'); void timerEl.offsetWidth; if(playing && !RM && !hovering) timerEl.classList.add('run');
+  schedule(hold);
+}
+function contentNum(gi){ var n=0; for(var k=0;k<=gi;k++){ if(!list()[k].cover) n++; } return n; }
+
+function schedule(hold){ clearTimeout(timer); if(playing && !hovering) timer=setTimeout(function(){ i=(i+1)%list().length; show(); }, hold||DEFAULT_HOLD); }
+function setPlayUI(){ document.body.classList.toggle('paused',!playing); play.textContent=playing?'⏸':'▶'; }
+function togglePlay(){ playing=!playing; setPlayUI(); if(playing){ if(curTL) curTL.restart(); timerEl.classList.remove('run'); void timerEl.offsetWidth; if(!RM)timerEl.classList.add('run'); var sc=list()[i]; schedule(sc.hold||DEFAULT_HOLD); } else { clearTimeout(timer); if(curTL) curTL.pause(); } }
+function step(d){ i=(i+d+list().length)%list().length; playing=true; setPlayUI(); show(); }
+function goto(n){ i=n; playing=true; setPlayUI(); show(); }
+function setSystem(s){
+  if(s===sys) return;
+  sys=s; i=0; playing=true;
+  qa(document,'.switch button').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-sys')===s); });
+  buildRail(); setPlayUI(); show();
+}
+document.addEventListener('keydown',function(e){
+  if(e.key===' '){ e.preventDefault(); togglePlay(); } else if(e.key==='ArrowRight'){ step(1); } else if(e.key==='ArrowLeft'){ step(-1); }
+});
+(function(){ var filmEl=document.querySelector('.film');
+  filmEl.addEventListener('mouseenter',function(){ hovering=true; clearTimeout(timer); document.body.classList.add('paused'); });
+  filmEl.addEventListener('mouseleave',function(){ hovering=false; if(playing){ document.body.classList.remove('paused'); var sc=list()[i]; timerEl.classList.remove('run'); void timerEl.offsetWidth; if(!RM)timerEl.classList.add('run'); schedule(sc.hold||DEFAULT_HOLD); } });
+  filmEl.addEventListener('click',function(){ step(1); });
+})();
+buildRail(); setPlayUI(); show();
+</script>
+<script>
+/* ===== BoostedVoice — simulazione chiamata (estratta dal componente del cliente) ===== */
+(function(){
+"use strict";
+var CFG={ name:'Ristorante' };
+function $(s){ return document.querySelector(s); }
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function bvOpenModal(html){ var p=$('#bvModalPanel'); if(!p)return; p.innerHTML=html; $('#bvModal').classList.add('open'); }
+function bvCloseModal(){ var m=$('#bvModal'); if(m)m.classList.remove('open'); }
+(function(){ var m=$('#bvModal'); if(m)m.addEventListener('click',function(e){ if(e.target.id==='bvModal')bvCloseModal(); }); })();
+document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ var m=$('#bvModal'); if(m&&m.classList.contains('open'))bvCloseModal(); } });
+document.addEventListener('click',function(e){ if(e.target.closest&&e.target.closest('[data-bvclose]'))bvCloseModal(); });
+var bvToken=0, bvBooking={}, bvConvaiLoaded=false, simN=0;
+function bvAlive(my){ return my===bvToken && $('#bvModal').classList.contains('open') && !!document.getElementById('bvLog'); }
+function bvWait(ms){ return new Promise(function(r){ setTimeout(r,ms); }); }
+function bvScroll(){ var l=document.getElementById('bvLog'); if(l)l.scrollTop=l.scrollHeight; }
+function bvBubble(role,html){ var l=document.getElementById('bvLog'); if(!l)return null; var d=document.createElement('div'); d.className='bvb '+role; d.innerHTML=html; l.appendChild(d); bvScroll(); return d; }
+async function bvSay(my,role,text,pre){ if(pre)await bvWait(pre); if(!bvAlive(my))return; var t=bvBubble(role,'<span class="bvtype"><i></i><i></i><i></i></span>'); await bvWait(Math.min(1500,520+text.length*19)); if(!bvAlive(my)||!t)return; t.innerHTML=text; bvScroll(); }
+function bvChoose(my,opts){ return new Promise(function(res){ var c=document.getElementById('bvChoices'); if(!c){res(null);return;} c.innerHTML=opts.map(function(o,i){ return '<button class="bvc-choice" data-i="'+i+'">'+esc(o.label)+'</button>'; }).join(''); Array.prototype.forEach.call(c.querySelectorAll('.bvc-choice'),function(b){ b.addEventListener('click',function(){ if(!bvAlive(my))return; var o=opts[+b.dataset.i]; c.innerHTML=''; bvBubble('caller',esc(o.say||o.label)); res(o); }); }); }); }
+function bvTool(my,label,result){ return new Promise(function(res){ var l=document.getElementById('bvLog'); if(!l){res();return;} var d=document.createElement('div'); d.className='bvtool'; d.innerHTML='<span class="bvt-spin"></span> '+esc(label); l.appendChild(d); bvScroll(); setTimeout(function(){ if(d.isConnected){ d.classList.add('done'); d.innerHTML='<span class="bvt-ok">✓</span> '+esc(label)+' · <b>'+esc(result)+'</b>'; bvScroll(); } res(); },1150); }); }
+function bvPhone(){ simN++; return '+39 333 '+(100+simN%900)+' '+(1000+(simN*37)%9000); }
+function mountBvConvai(){ var slot=document.getElementById('bvConvai'); if(!slot||slot.children.length)return; var el=document.createElement('elevenlabs-convai'); el.setAttribute('agent-id','agent_1501kvg8ar32e7f9javsc99wt2yf'); try{ el.setAttribute('dynamic-variables',JSON.stringify({current_date:new Date().toLocaleDateString('it-IT',{weekday:'long',year:'numeric',month:'long',day:'numeric'})})); }catch(e){} slot.appendChild(el); if(!bvConvaiLoaded){ bvConvaiLoaded=true; var s=document.createElement('script'); s.src='https://unpkg.com/@elevenlabs/convai-widget-embed'; s.async=true; document.body.appendChild(s); } }
+window.bvOpen=function(){
+  try{ window.playing=false; if(typeof window.setPlayUI==='function')window.setPlayUI(); if(window.timer)clearTimeout(window.timer); }catch(e){}
+  var my=++bvToken; bvBooking={};
+  bvOpenModal('<div class="bvc"><div class="bvc-tabs"><button class="bvc-tab on" id="bvTabChat">💬 Simulazione</button><button class="bvc-tab" id="bvTabVoice">🎙 Voce dal vivo</button><button class="bvc-x" data-bvclose aria-label="Chiudi">✕</button></div>'
+    +'<div id="bvChatPane"><div class="bvc-head"><span class="bvc-orb live" id="bvOrb"></span><div style="min-width:0"><b>'+esc(CFG.name)+'</b><div class="bvc-st" id="bvStatus">L’assistente risponde…</div></div><span class="bvc-rec">● REC</span></div><div class="bvc-log" id="bvLog"></div><div class="bvc-choices" id="bvChoices"></div></div>'
+    +'<div id="bvVoicePane" hidden><div class="bvc-voicewrap"><p class="bvc-vlead">Parla davvero con l’assistente: tocca il pulsante di chiamata, dai il consenso al microfono e prova a prenotare a voce. È lo stesso bot che risponde al telefono del ristorante.</p><div id="bvConvai"></div><p class="bvc-vnote">Conversazione reale gestita dall’AI · serve microfono e internet.</p></div></div></div>');
+  var tc=$('#bvTabChat'), tv=$('#bvTabVoice');
+  if(tc)tc.addEventListener('click',function(){ tc.classList.add('on'); tv.classList.remove('on'); $('#bvChatPane').hidden=false; $('#bvVoicePane').hidden=true; });
+  if(tv)tv.addEventListener('click',function(){ tv.classList.add('on'); tc.classList.remove('on'); $('#bvVoicePane').hidden=false; $('#bvChatPane').hidden=true; mountBvConvai(); });
+  bvRun(my);
+};
+async function bvRun(my){
+  var orb=document.getElementById('bvOrb'), st=document.getElementById('bvStatus');
+  if(orb)orb.classList.add('live'); if(st)st.textContent='In chiamata…';
+  await bvSay(my,'ai',CFG.name+', buonasera! Sono l’assistente. Posso aiutarla con una prenotazione o darle un’informazione.',450); if(!bvAlive(my))return;
+  await bvChoose(my,[{label:'Vorrei prenotare un tavolo',say:'Buonasera, vorrei prenotare un tavolo'},{label:'Avete posto stasera?',say:'Avete posto per stasera?'}]); if(!bvAlive(my))return;
+  await bvSay(my,'ai','Volentieri. Per quante persone?',250); if(!bvAlive(my))return;
+  var pax=await bvChoose(my,[{label:'Per due',val:2},{label:'Per quattro',val:4}]); if(!bvAlive(my))return; bvBooking.pax=pax.val;
+  await bvSay(my,'ai','Perfetto, '+pax.val+'. Per che ora, stasera?',250); if(!bvAlive(my))return;
+  var w=await bvChoose(my,[{label:'Alle 20:30',h:20,m:30,say:'Verso le otto e mezza'},{label:'Alle 21:00',h:21,m:0,say:'Alle nove'}]); if(!bvAlive(my))return; bvBooking.h=w.h; bvBooking.m=w.m;
+  await bvWait(250); await bvTool(my,'check_availability · '+w.h+':'+(w.m?'30':'00')+' · '+pax.val+'p','disponibile'); if(!bvAlive(my))return;
+  await bvSay(my,'ai','Sì, abbiamo posto. A che nome la metto?',200); if(!bvAlive(my))return;
+  var who=await bvChoose(my,[{label:'Elena Conti',val:'Elena Conti'},{label:'Marco Belli',val:'Marco Belli'}]); if(!bvAlive(my))return; bvBooking.name=who.val;
+  await bvSay(my,'ai','Mi lascia un recapito telefonico, per cortesia?',200); if(!bvAlive(my))return;
+  bvBooking.phone=bvPhone(); await bvWait(450); if(!bvAlive(my))return; bvBubble('caller',esc(bvBooking.phone));
+  await bvSay(my,'ai','Ripeto: '+esc(bvBooking.phone)+'. Confermo allora?',500); if(!bvAlive(my))return;
+  await bvChoose(my,[{label:'Sì, confermo',say:'Sì, perfetto, grazie'}]); if(!bvAlive(my))return;
+  await bvWait(200); await bvTool(my,'create_booking','ok=true'); if(!bvAlive(my))return;
+  await bvSay(my,'ai','Perfetto! Tavolo per '+bvBooking.pax+', stasera alle '+bvBooking.h+':'+(bvBooking.m?'30':'00')+', a nome '+esc(bvBooking.name)+'. Vi aspettiamo, a presto!',300); if(!bvAlive(my))return;
+  if(st)st.textContent='Chiamata terminata · prenotazione creata'; if(orb)orb.classList.remove('live');
+  var c=document.getElementById('bvChoices'); if(c)c.innerHTML='<div class="bvc-done">✓ La prenotazione è entrata in agenda, da sola</div><button class="bvbtn" id="bvAgain">↻ Riprova</button>';
+  var ag=document.getElementById('bvAgain'); if(ag)ag.addEventListener('click',function(){ var l=document.getElementById('bvLog'); if(l)l.innerHTML=''; var ch=document.getElementById('bvChoices'); if(ch)ch.innerHTML=''; bvBooking={}; bvRun(++bvToken); });
+}
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boosted · Enoteca — Prezzi & Margine</title>
+<style>
+  :root{
+    --bg:#140f20; --surface:#1e1730; --surface2:#251d3a;
+    --line:#352b4e; --lilla:#8B6FB8; --lilla2:#C9A9E9; --grigio:#8a8f98;
+    --verde:#5DCAA5; --rosso:#e8748c; --giallo:#EF9F27; --txt:#efeaf6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;padding:26px 18px 60px}
+  .wrap{max-width:1000px;margin:0 auto}
+  h1{font-size:26px;margin:0 0 4px;letter-spacing:-.4px}
+  h1 .b{color:var(--lilla2)}
+  .sub{color:var(--grigio);font-size:13.5px;margin:0 0 18px}
+  .presets{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 20px}
+  .presets button{background:var(--surface2);color:var(--txt);border:1px solid var(--line);
+    border-radius:10px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;transition:.15s}
+  .presets button:hover{border-color:var(--lilla);background:#2c2246}
+  .presets .print{margin-left:auto;background:transparent}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:18px}
+  .card h2{font-size:16px;margin:0 0 3px;color:var(--lilla2)}
+  .card .h-sub{color:var(--grigio);font-size:12.5px;margin:0 0 16px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+  @media(max-width:720px){.grid{grid-template-columns:1fr;gap:18px}}
+  .field{display:flex;justify-content:space-between;align-items:center;gap:12px;
+    padding:8px 0;border-bottom:1px dashed var(--line)}
+  .field:last-child{border-bottom:0}
+  .field label{font-size:13px;color:#d7d0e4}
+  .field label small{display:block;color:var(--grigio);font-size:11px;font-weight:400}
+  .field .in{display:flex;align-items:center;gap:5px}
+  .field .in .eur{color:var(--grigio);font-size:12px}
+  input[type=number]{width:88px;background:var(--surface2);border:1px solid var(--line);
+    color:var(--txt);border-radius:8px;padding:7px 9px;font-size:13.5px;font-weight:700;text-align:right;
+    font-family:inherit}
+  input[type=number]:focus{outline:none;border-color:var(--lilla)}
+  input.blue{color:#9db4ff}
+  .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+  .kpi{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:13px 14px}
+  .kpi .n{font-size:22px;font-weight:800;letter-spacing:-.5px}
+  .kpi .l{font-size:11px;color:var(--grigio);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-top:2px}
+  .kpi.big{grid-column:1/-1}
+  .pos{color:var(--verde)} .neg{color:var(--rosso)} .acc{color:var(--lilla2)}
+  table{width:100%;border-collapse:collapse;margin-top:4px}
+  th,td{padding:9px 8px;text-align:right;font-size:13px;border-bottom:1px solid var(--line)}
+  th{color:var(--grigio);font-size:11px;text-transform:uppercase;letter-spacing:.4px;font-weight:700}
+  th:first-child,td:first-child{text-align:left}
+  td input{width:74px}
+  tfoot td{font-weight:800;border-bottom:0;border-top:2px solid var(--line)}
+  .note{font-size:12px;color:var(--grigio);margin-top:12px;line-height:1.6}
+  .note b{color:#cbb8e6}
+  .warn{background:rgba(232,116,140,.1);border:1px solid rgba(232,116,140,.3);border-radius:10px;
+    padding:10px 12px;font-size:12.5px;color:#f0c2cc;margin-top:12px}
+  .foot{font-size:11.5px;color:#6f6a7d;margin-top:22px;line-height:1.7}
+  @media print{body{background:#fff;color:#000;padding:0}
+    .card{border-color:#ccc;background:#fff;break-inside:avoid}
+    .presets{display:none}.kpi,.field input,td input{background:#f4f4f7}
+    h1 .b,.acc{color:#5b2a86}.pos{color:#127a5a}.neg{color:#b03a52}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><span class="b">Boosted</span> · Enoteca — Prezzi & Margine</h1>
+  <p class="sub">Simulatore per tarare l'offerta. I campi con il numero sono modificabili: cambia e i margini si aggiornano da soli. (Valori indicativi 2026.)</p>
+
+  <div class="presets">
+    <button onclick="preset(500,49)">Pacchetto Base</button>
+    <button onclick="preset(900,79)">Pacchetto Medio</button>
+    <button onclick="preset(1500,129)">Pacchetto Premium</button>
+    <button class="print" onclick="window.print()">🖨 Stampa / PDF</button>
+  </div>
+
+  <div class="card">
+    <h2>1 · La tua economia (Boosted)</h2>
+    <p class="h-sub">Quanto ti costa tenere in piedi l'e-commerce del cliente, contro quanto glielo fai pagare.</p>
+    <div class="grid">
+      <div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--grigio);font-weight:800;margin-bottom:4px">I tuoi costi</div>
+        <div class="field"><label>Hosting (VPS)<small>server sempre acceso, disco</small></label><div class="in"><span class="eur">€</span><input type="number" id="hosting" value="6" step="1">/mese</div></div>
+        <div class="field"><label>Dominio<small>.it, rinnovo annuale</small></label><div class="in"><span class="eur">€</span><input type="number" id="dominio" value="12" step="1">/anno</div></div>
+        <div class="field"><label>Email professionale<small>casella col dominio (opz.)</small></label><div class="in"><span class="eur">€</span><input type="number" id="email" value="5" step="1">/mese</div></div>
+        <div class="field"><label>Altri costi fissi<small>backup, extra</small></label><div class="in"><span class="eur">€</span><input type="number" id="altri" value="0" step="1">/mese</div></div>
+        <div class="field"><label>Tuo costo di realizzazione<small>una-tantum (0 se lo fai tu)</small></label><div class="in"><span class="eur">€</span><input type="number" id="real" value="0" step="50"></div></div>
+      </div>
+      <div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--grigio);font-weight:800;margin-bottom:4px">Cosa fai pagare al cliente</div>
+        <div class="field"><label>Setup iniziale<small>una-tantum</small></label><div class="in"><span class="eur">€</span><input type="number" id="setup" class="blue" value="900" step="50"></div></div>
+        <div class="field"><label>Canone mensile<small>gestione + assistenza</small></label><div class="in"><span class="eur">€</span><input type="number" id="canone" class="blue" value="79" step="5">/mese</div></div>
+        <div class="kpis" style="margin-top:14px">
+          <div class="kpi"><div class="n acc" id="k_cost">€ 12</div><div class="l">Costo fisso tuo / mese</div></div>
+          <div class="kpi"><div class="n pos" id="k_mm">€ 67</div><div class="l">Margine / mese</div></div>
+          <div class="kpi big"><div class="n pos" id="k_y1">€ 1.704</div><div class="l">Margine primo anno (setup + 12 mesi − realizzazione)</div></div>
+          <div class="kpi big"><div class="n" id="k_yr">€ 804</div><div class="l">Margine annuo a regime (dal 2° anno)</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="note">Il <b>canone</b> è il tuo ricavo ricorrente: coprire i ~6-12€/mese di costi fissi e il resto è margine. La <b>spedizione e le commissioni di pagamento non sono qui</b>: le paga il cliente finale (vedi sotto) o si girano in bolletta, non pesano sul tuo margine di gestione.</div>
+  </div>
+
+  <div class="card">
+    <h2>2 · Spese di spedizione (economia dell'enoteca)</h2>
+    <p class="h-sub">Quanto costa spedire il vino contro quanto lo fai pagare al cliente finale. Serve a non farci perdere soldi all'enoteca.</p>
+    <table id="ship">
+      <thead><tr><th>Ordine</th><th>Peso ~</th><th>Costo tuo (corriere+imballo)</th><th>Prezzo al cliente</th><th>Margine spedizione</th></tr></thead>
+      <tbody>
+        <tr data-w="~2 kg"><td>1 bottiglia</td><td>~2 kg</td><td><input type="number" class="scost" value="7" step="0.5"></td><td><input type="number" class="sprice blue" value="7.90" step="0.5"></td><td class="smarg">—</td></tr>
+        <tr data-w="~4,5 kg"><td>3 bottiglie</td><td>~4,5 kg</td><td><input type="number" class="scost" value="9" step="0.5"></td><td><input type="number" class="sprice blue" value="9.90" step="0.5"></td><td class="smarg">—</td></tr>
+        <tr data-w="~8 kg"><td>6 bottiglie</td><td>~8 kg</td><td><input type="number" class="scost" value="13" step="0.5"></td><td><input type="number" class="sprice blue" value="12.90" step="0.5"></td><td class="smarg">—</td></tr>
+        <tr data-w="~18 kg"><td>12 bottiglie</td><td>~18 kg</td><td><input type="number" class="scost" value="18" step="0.5"></td><td><input type="number" class="sprice blue" value="0" step="0.5"></td><td class="smarg">—</td></tr>
+      </tbody>
+    </table>
+    <div class="warn" id="shipwarn">⚠️ Occhio: se la spedizione al cliente è troppo bassa (o gratis su ordini pesanti), il margine spedizione va in negativo → l'enoteca ci rimette a ogni pacco. Metti la soglia "spedizione gratis" alta (es. sopra 12 bottiglie / 100€) e assorbila nel margine sul vino.</div>
+    <div class="note"><b>Commissioni pagamento online</b> (se incassa con carta): Stripe/PayPal ~1,5% + 0,25€ a transazione — un ordine da 60€ costa ~1,15€ di commissione. Va tolto dal margine dell'enoteca, non dal tuo.</div>
+  </div>
+
+  <div class="foot">
+    Assunzioni (modificabili): hosting VPS ~5-7€/mese · dominio .it ~10-15€/anno · email col dominio pochi €/mese · Stripe ~1,5%+0,25€/transazione · spedizione vino ~6-20€/pacco secondo peso + imballo ~1-4€. Il pagamento reale (Stripe/PayPal) e l'upload foto prodotto sono lavori di sviluppo una-tantum. Riconoscimento bottiglie da foto e WhatsApp/marketing (simulato) = 0€. Cifre indicative luglio 2026, da confermare col preventivo del corriere e col piano hosting scelto.
+  </div>
+</div>
+
+<script>
+  const eur=n=>'€ '+ (Math.round(n*100)/100).toLocaleString('it-IT',{minimumFractionDigits:0,maximumFractionDigits:2});
+  const val=id=>parseFloat(document.getElementById(id).value)||0;
+  function calc(){
+    const costMese = val('hosting') + val('dominio')/12 + val('email') + val('altri');
+    const canone = val('canone');
+    const setup = val('setup');
+    const real = val('real');
+    const margineMese = canone - costMese;
+    const annuoRegime = margineMese*12;
+    const primoAnno = setup + annuoRegime - real;
+    document.getElementById('k_cost').textContent = eur(costMese);
+    const mm=document.getElementById('k_mm'); mm.textContent=eur(margineMese); mm.className='n '+(margineMese>=0?'pos':'neg');
+    const y1=document.getElementById('k_y1'); y1.textContent=eur(primoAnno); y1.className='n '+(primoAnno>=0?'pos':'neg');
+    const yr=document.getElementById('k_yr'); yr.textContent=eur(annuoRegime); yr.className='n '+(annuoRegime>=0?'pos':'neg');
+    // shipping
+    let anyNeg=false;
+    document.querySelectorAll('#ship tbody tr').forEach(tr=>{
+      const c=parseFloat(tr.querySelector('.scost').value)||0;
+      const p=parseFloat(tr.querySelector('.sprice').value)||0;
+      const m=p-c; const cell=tr.querySelector('.smarg');
+      cell.textContent=(m>=0?'+':'')+eur(m).replace('€ ','€ ');
+      cell.className='smarg '+(m>=0?'pos':'neg');
+      if(m<0) anyNeg=true;
+    });
+    document.getElementById('shipwarn').style.display = anyNeg? 'block':'none';
+  }
+  function preset(setup,canone){document.getElementById('setup').value=setup;document.getElementById('canone').value=canone;calc();}
+  document.querySelectorAll('input').forEach(i=>i.addEventListener('input',calc));
+  calc();
+</script>
+</body>
+</html>
