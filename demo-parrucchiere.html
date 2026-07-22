@@ -625,7 +625,7 @@ const DEFAULT_CONFIG={
 // =================================================================================================
 
 // ===================== STATE + persistence =====================
-const LSKEY='boosted-demo-parrucchiere-v2';
+const LSKEY='boosted-demo-parrucchiere-v3';
 let CONFIG=null, state=null;
 let view='agenda', agDay=0, selBill=null, editSvc=null, editOp=null, editCli=null, reasonCb=null, cliSearch='', simN=0, gestTab='incassi', mktTab='cruscotto', mktCh='email', mktMode='all', mktSel=[], mktRevMode='all', mktRevSel=[], repRange='oggi';
 let mktDraft={subject:'',email:'',wa:''};
@@ -634,13 +634,36 @@ let svcPhotoDraft='';
 let cliSel={services:[],operator:'any',day:0,slot:null}, cliBooked=null;
 
 function buildServices(arr){return arr.map((a,i)=>({id:uid('sv'),cat:a[0],name:a[1],dur:a[2],price:a[3],emoji:a[4]||'✨',ops:(a[5]||'').split(',').map(s=>s.trim()).filter(Boolean),av:true,ord:i,photo:''}));}
+// Storico servizi pre-caricato per i clienti demo (così la scheda è già ricca alla presentazione).
+// Ogni voce: { at, operatorId, services:[nomi], amount(centesimi), tip, method, note }. Ordine: dal più recente.
+function seedHairHistory(i,prefOp){
+  const V=(d,mn,svc,amt,method,note)=>({at:isoAt(-d,mn),operatorId:prefOp,services:Array.isArray(svc)?svc:[svc],amount:amt,tip:0,method:method||'carta',note:note||''});
+  if(i===0) return [ // Francesca Galli — colore ricorrente, allergia PPD
+    V(21,600,'Piega',2500,'contanti',''),
+    V(35,930,'Colpi di sole',8000,'carta','Schiarita di mezzo tono su richiesta'),
+    V(53,600,['Colore','Taglio donna'],8300,'carta',''),
+    V(74,1020,'Colore',5500,'carta','Ritocco radici · SENZA ammoniaca (allergia PPD)'),
+    V(95,900,'Piega',2500,'contanti',''),
+    V(120,600,['Colore','Taglio donna'],8300,'carta','Base 6.34, prima seduta')
+  ];
+  if(i===1) return [ // Martina Ricci — piega sempre liscia
+    V(12,1050,'Taglio donna',2800,'carta',''),
+    V(40,930,'Piega',2500,'contanti','Piega sempre liscia, no boccoli')
+  ];
+  if(i===2) return [ // Davide Monti — barba, sfumatura bassa
+    V(30,660,'Taglio + barba',3000,'contanti','Sfumatura bassa, sfumino n.1'),
+    V(52,1080,'Barba modellata',1500,'contanti',''),
+    V(75,660,'Taglio + barba',3000,'carta','')
+  ];
+  return []; // Chiara Sodi (i===3): scheda nuova, storico vuoto → mostra lo stato "nessun servizio"
+}
 function freshState(cfg){
   return {
     cfg:{name:cfg.name,tagline:cfg.tagline,accent:cfg.accent,openH:cfg.openH,closeH:cfg.closeH,voiceHint:cfg.voiceHint},
     operators:cfg.operators.map(a=>({id:a[0],name:a[1],color:a[2]})),
     services:buildServices(cfg.services),
     products:cfg.products.map(a=>({id:uid('pr'),name:a[0],price:a[1],emoji:a[2]||'🧴',av:true})),
-    clients:cfg.clients.map((a,i)=>{const _f=(a[0]||'').trim(),_p=_f.split(/\s+/),_last=i===0?isoAt(-21,600):(i===2?isoAt(-30,660):null);return {id:uid('cl'),nome:_p[0]||'',cognome:_p.slice(1).join(' ')||'',name:_f,phone:a[1]||'',email:(a[0]||'cliente').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z ]/g,'').trim().replace(/\s+/g,'.')+'@email.it',source:'scheda',createdAt:isoAt(-60+i*4,600),notes:a[2],pref:a[3],visits:i===0?8:(i===2?3:0),spend:i===0?42000:(i===2?9000:0),last:_last,lastVisit:_last};}),
+    clients:cfg.clients.map((a,i)=>{const _f=(a[0]||'').trim(),_p=_f.split(/\s+/),_h=seedHairHistory(i,a[3]),_spend=_h.reduce((s,v)=>s+(v.amount||0),0),_last=_h.length?_h[0].at:null;return {id:uid('cl'),nome:_p[0]||'',cognome:_p.slice(1).join(' ')||'',name:_f,phone:a[1]||'',email:(a[0]||'cliente').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z ]/g,'').trim().replace(/\s+/g,'.')+'@email.it',source:'scheda',createdAt:isoAt(-60+i*4,600),notes:a[2],pref:a[3],history:_h,visits:_h.length,spend:_spend,last:_last,lastVisit:_last};}),
     appts:[], queue:[], sales:[],
     reviews:[], feedback:[], rep:{score:0,count:0,month:0}, mkt:{campaigns:[],feed:[],reviews:{requested:0,received:0},emailsSent:0,waSent:0}
   };
@@ -723,6 +746,8 @@ function boot(){
     if(Array.isArray(cat.products))state.products=cat.products;
     if(Array.isArray(cat.clients))state.clients=cat.clients;
   }
+  // migrazione: garantisco che ogni scheda cliente abbia l'array storico (schede vecchie o importate)
+  state.clients.forEach(c=>{if(!Array.isArray(c.history))c.history=[];});
   // Se c'è già attività salvata (prenotazioni ecc.) la ripristino → resta coerente tra le schede
   // del pannello (cliente ↔ agenda). Altrimenti semino la demo e la salvo subito.
   if(cat&&cat._live&&Array.isArray(cat.appts)){
@@ -872,7 +897,7 @@ function upsertClient(o){
     if(!c.nome&&nm)c.nome=nm;if(!c.cognome&&cg)c.cognome=cg;if(!c.source&&o.source)c.source=o.source;
     return {client:c,isNew:false};
   }
-  c={id:uid('cl'),nome:nm,cognome:cg,name:name,phone:(o.phone||'').trim(),email:(o.email||'').trim(),source:o.source||'web',createdAt:new Date().toISOString(),visits:0,lastVisit:null,last:null,spend:0,notes:'',pref:''};
+  c={id:uid('cl'),nome:nm,cognome:cg,name:name,phone:(o.phone||'').trim(),email:(o.email||'').trim(),source:o.source||'web',createdAt:new Date().toISOString(),visits:0,lastVisit:null,last:null,spend:0,notes:'',pref:'',history:[]};
   state.clients.push(c);return {client:c,isNew:true};
 }
 const STATUS_IT={pending:'da confermare',confirmed:'confermato',inchair:'in poltrona',done:'concluso',cancelled:'annullato',noshow:'no-show'};
@@ -1125,6 +1150,7 @@ function renderClienti(){
       <div class="crow"><span>Punti fedeltà</span><b style="color:var(--giallo)">${c.visits*10} pt</b></div>
       <div class="crow"><span>Spesa totale</span><b style="color:var(--lilla-chiaro)">${euro(c.spend)}</b></div>
       <div class="crow"><span>Ultima</span><span>${c.last?new Date(c.last).toLocaleDateString('it-IT'):'—'}</span></div>
+      ${(c.history&&c.history.length)?`<div class="crow"><span>Ultimo servizio</span><span>${esc((c.history.slice().sort((x,y)=>new Date(y.at)-new Date(x.at))[0].services||[]).join(' + ')||'—')}</span></div>`:''}
       <div class="crow"><span>Preferito</span><span>${c.pref?esc((opById(c.pref)||{name:'—'}).name):'—'}</span></div>
       ${c.notes?`<div class="note">📝 ${esc(c.notes)}</div>`:''}
       <div class="cact"><button class="btn sm block" data-editcli="${c.id}">${EDIT} Scheda</button></div></div>`;
@@ -1505,6 +1531,27 @@ function openProd(id){
 }
 
 // client editor
+// Storico servizi del cliente, dal più recente: data · operatore · servizi · importo (+ nota del servizio).
+function cliHistoryHtml(c){
+  const h=(c&&Array.isArray(c.history))?c.history.slice().sort((a,b)=>new Date(b.at)-new Date(a.at)):[];
+  const head='<div class="sec-title" style="margin:4px 0 7px">📋 Storico servizi</div>';
+  if(!h.length) return head+'<div class="empty" style="padding:12px 10px;margin-bottom:12px">Ancora nessun servizio registrato. Si aggiorna da solo quando concludi un servizio nelle <b>Poltrone</b>.</div>';
+  const rows=h.map(v=>{
+    const op=opById(v.operatorId)||{name:'—',color:'#8A8F98'};
+    const d=new Date(v.at).toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'numeric'});
+    const svc=((v.services||[]).concat(v.products||[])).join(' + ')||'Servizio';
+    return `<div style="padding:9px 11px;border:1px solid var(--line);border-radius:11px;background:var(--surface-2);margin-bottom:7px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="width:8px;height:8px;border-radius:50%;background:${op.color};flex:none"></span>
+        <span style="font-weight:700">${esc(svc)}</span>
+        <span style="margin-left:auto;font-weight:800;color:var(--lilla-chiaro)">${euro(v.amount||0)}</span>
+      </div>
+      <div style="font-size:11.5px;color:var(--grigio);margin-top:2px">${esc(d)} · ${esc(op.name)}${v.method?' · '+esc(v.method):''}</div>
+      ${v.note?`<div style="font-size:12px;color:var(--giallo);margin-top:4px">📝 ${esc(v.note)}</div>`:''}
+    </div>`;
+  }).join('');
+  return head+`<div style="max-height:210px;overflow:auto;margin-bottom:12px">${rows}</div>`;
+}
 function openCli(id){
   editCli=id;const c=id?state.clients.find(x=>x.id===id):null;
   openModal(`<h3>${c?'Scheda cliente':'Nuovo cliente'}</h3><div class="psub">Storico, note e operatore preferito.</div>
@@ -1512,10 +1559,11 @@ function openCli(id){
     <div class="field"><label>Telefono</label><input id="cPhone" value="${c?esc(c.phone):''}"></div>
     <div class="field"><label>Email</label><input id="cEmail" value="${c?esc(c.email||''):''}" placeholder="nome@esempio.it" inputmode="email"></div>
     <div class="field"><label>Operatore preferito</label><select id="cPref"><option value="">—</option>${state.operators.map(o=>`<option value="${o.id}" ${c&&c.pref===o.id?'selected':''}>${esc(o.name)}</option>`).join('')}</select></div>
-    <div class="field"><label>Note (formula colore, allergie…)</label><textarea id="cNotes" rows="2">${c?esc(c.notes):''}</textarea></div>
+    <div class="field"><label>📝 Note fisse — allergie, formula colore, preferenze</label><textarea id="cNotes" rows="3" placeholder="Es. Allergia PPD → colore senza ammoniaca · formula 6.34 · caffè macchiato all'arrivo">${c?esc(c.notes):''}</textarea><div class="hint" style="margin-top:5px">Restano sempre in vista: le rivedi alla visita dopo.</div></div>
     ${c?`<div class="hint" style="margin-bottom:12px">${c.visits} visite · ${euro(c.spend)} totali · ultima ${c.last?new Date(c.last).toLocaleDateString('it-IT'):'—'}</div>`:''}
+    ${c?cliHistoryHtml(c):''}
     <div class="pactions" style="justify-content:space-between">${c?`<button class="btn bad sm" data-delcli="${c.id}">🗑 Elimina</button>`:'<span></span>'}<div style="display:flex;gap:8px"><button class="btn sm" data-mclose>Annulla</button><button class="btn primary sm" id="cSave">Salva</button></div></div>`);
-  $('#cSave').addEventListener('click',()=>{const name=$('#cName').value.trim();if(!name)return;const sp=splitName(name);const o={name,nome:sp.nome,cognome:sp.cognome,phone:$('#cPhone').value.trim(),email:(($('#cEmail')||{}).value||'').trim(),pref:$('#cPref').value,notes:$('#cNotes').value.trim()};if(c)Object.assign(c,o);else state.clients.push(Object.assign({id:uid('cl'),source:'scheda',createdAt:new Date().toISOString(),visits:0,spend:0,last:null,lastVisit:null},o));closeModal();toast('Scheda salvata.');renderAll();persist();});
+  $('#cSave').addEventListener('click',()=>{const name=$('#cName').value.trim();if(!name)return;const sp=splitName(name);const o={name,nome:sp.nome,cognome:sp.cognome,phone:$('#cPhone').value.trim(),email:(($('#cEmail')||{}).value||'').trim(),pref:$('#cPref').value,notes:$('#cNotes').value.trim()};if(c)Object.assign(c,o);else state.clients.push(Object.assign({id:uid('cl'),source:'scheda',createdAt:new Date().toISOString(),visits:0,spend:0,last:null,lastVisit:null,history:[]},o));closeModal();toast('Scheda salvata.');renderAll();persist();});
 }
 
 // operator editor
@@ -1588,7 +1636,9 @@ function payAppt(id,method){
   a.paid=true;
   // update client card
   let c=findClient({name:a.clientName,phone:a.phone},true);
-  if(c){c.visits++;c.spend+=total;c.last=new Date().toISOString();c.lastVisit=c.last;if(!c.pref)c.pref=a.operatorId;}
+  if(c){c.visits++;c.spend+=total;c.last=new Date().toISOString();c.lastVisit=c.last;if(!c.pref)c.pref=a.operatorId;
+    // storico: la voce più recente in testa, così la scheda cliente mostra subito l'ultimo servizio
+    (c.history||(c.history=[])).unshift({at:c.last,operatorId:a.operatorId,services:a.serviceIds.map(sid=>{const sv=svcById(sid);return sv?sv.name:'?';}),products:(a.products||[]).map(p=>p.name),amount:total-(a.tip||0),tip:a.tip||0,method,note:''});}
   if(selBill===id)selBill=null;
   toast(`Incassato ${euro(total)} · ${method}.`);
 }
