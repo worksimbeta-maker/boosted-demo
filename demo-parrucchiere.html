@@ -961,7 +961,10 @@ function renderProva(){
     const label = useRef ? 'Look dalla foto' : (combo()||'Nuovo look');
     const rz=$('#pvResult'); rz.innerHTML='<div class="hint">Sto generando l\'anteprima…</div>';
     try{
-      const r=await fetch('/api/hair',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      // In locale (launcher su localhost o IP di rete) l'endpoint è relativo; online (GitHub Pages)
+      // il pannello statico non ha backend → si appoggia al servizio ecommerce su Render (stessa chiave fal.ai).
+      const HAIR_API = location.hostname.endsWith('github.io') ? 'https://boosted-ecommerce.onrender.com/api/hair' : '/api/hair';
+      const r=await fetch(HAIR_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       const d=await r.json().catch(()=>({}));
       if(d&&d.mode==='reale'&&d.image){
         rz.innerHTML='<img src="'+esc(d.image)+'" alt="anteprima look" style="width:100%;max-width:320px;border-radius:14px;display:block"><div class="hint" style="margin-top:6px">Anteprima AI · '+esc(label)+'</div>';
@@ -1309,24 +1312,10 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#modal').classLi
 
 // ===================== DEMO CONVERSAZIONE AI (voce + chat) =====================
 let bvToken=0, bvAppt={};
-// ⬇️ VOCE DEL SALONE — Agent ID dell'assistente del salone (config in 11labs/AGENT-CONFIG-barbiere.md).
-// Se vuoi provare con una voce diversa metti qui il suo Agent ID; BV_SALON_AGENT_IS_PREVIEW=true mostra l'avviso "anteprima".
-const BV_SALON_AGENT='agent_0501kwybt7m7etps5myt8ngv3vv1';
-const BV_SALON_AGENT_IS_PREVIEW=false;
-let bvSalonLoaded=false;
-function mountBvSalonConvai(){
-  if(!BV_SALON_AGENT) return; // nessun agente → resta la nota
-  const note=document.getElementById('bvSalonNote');
-  if(note) note.innerHTML = BV_SALON_AGENT_IS_PREVIEW
-    ? '<p class="bvc-vlead">Prova a parlare: tocca il pulsante di chiamata che compare, dai il consenso al microfono e prova a prenotare a voce.</p><p class="bvc-vnote">⚠️ Anteprima con la voce dell\'assistente ristorante, per farti sentire il meccanismo. Sul tuo salone l\'assistente parlerà del tuo salone — si attiva in ~10 min con la config già pronta.</p>'
-    : '<p class="bvc-vlead">Prova a parlare col tuo assistente: tocca il pulsante di chiamata, dai il consenso al microfono e prova a prenotare a voce.</p>';
-  const slot=document.getElementById('bvSalonConvai'); if(!slot||slot.children.length)return;
-  const el=document.createElement('elevenlabs-convai'); el.setAttribute('agent-id',BV_SALON_AGENT);
-  try{el.setAttribute('dynamic-variables',JSON.stringify({current_date:new Date().toLocaleDateString('it-IT',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}));}catch(e){}
-  el.addEventListener('elevenlabs-convai:call',(ev)=>{ try{ ev.detail.config.clientTools=Object.assign({},ev.detail.config.clientTools,{fissa_appuntamento:(p)=>bvSalonBook(p)}); }catch(e){} });
-  slot.appendChild(el);
-  if(!bvSalonLoaded){bvSalonLoaded=true;const s=document.createElement('script');s.src='https://unpkg.com/@elevenlabs/convai-widget-embed';s.async=true;document.body.appendChild(s);}
-}
+// VOCE DEL SALONE — in produzione l'assistente vocale gira sullo stack conforme UE
+// (numero italiano → Azure Speech in West Europe + Claude su AWS Bedrock Francoforte).
+// In demo NON si carica nessun widget di terzi: la conversazione si prova nella scheda "Simulazione".
+function mountBvSalonConvai(){ /* nessun widget esterno: la prova vocale dal vivo è su richiesta in presentazione */ }
 // Strumento lato-client: l'agente vocale dal vivo chiama questa funzione alla conferma → l'appuntamento entra in agenda.
 function bvSalonBook(p){
   try{
@@ -1390,7 +1379,7 @@ function openVoiceDemo(){
         <div id="bvSalonConvai"></div>
         <div id="bvSalonNote">
           <p class="bvc-vlead">La voce dal vivo si attiva sul numero del tuo salone: l'assistente risponde alle chiamate quando non puoi e fissa gli appuntamenti come nella simulazione qui accanto — controllando l'agenda reale.</p>
-          <p class="bvc-vnote">In demo la conversazione la provi nella scheda <b>Simulazione</b>. La voce sul telefono la attiviamo sul tuo numero.</p>
+          <p class="bvc-vnote">🔒 Numero, voce e dati trattati <b>nell'Unione Europea</b> — conforme GDPR e AI Act. In demo la conversazione la provi nella scheda <b>Simulazione</b>; la prova a voce dal vivo è su richiesta in presentazione.</p>
         </div>
       </div>
     </div>
@@ -1402,7 +1391,7 @@ function openVoiceDemo(){
 async function bvRun(my){
   const orb=document.getElementById('bvOrb'), st=document.getElementById('bvStatus');
   if(orb)orb.classList.add('live'); if(st)st.textContent='In chiamata…';
-  await bvSay(my,'ai',`${esc(state.cfg.name)}, buongiorno! Sono l'assistente. Vuole fissare un appuntamento?`,450); if(!bvAlive(my))return;
+  await bvSay(my,'ai',`${esc(state.cfg.name)}, buongiorno. Risponde l'assistente automatico. Vuole fissare un appuntamento?`,450); if(!bvAlive(my))return;
   const svcChoice=await bvChoose(my,[{label:'Sì, un taglio',svc:'Taglio donna',say:'Sì, vorrei un taglio'},{label:'Colore e taglio',svc:'Colore + taglio',say:'Vorrei colore e taglio'}]); if(!bvAlive(my))return;
   const sv=bvSvc(svcChoice.svc); bvAppt.svcIds=[sv.id];
   await bvSay(my,'ai','Con piacere. Con un operatore in particolare o le va il primo libero?',250); if(!bvAlive(my))return;
