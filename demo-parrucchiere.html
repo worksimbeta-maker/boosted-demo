@@ -388,9 +388,9 @@
       <div id="roles-asst"></div>
       <div class="card">
         <div class="sec-title">Assistente vocale AI</div>
-        <div class="hint" style="margin-bottom:14px">Risponde al telefono h24, controlla l'agenda reale e fissa gli appuntamenti da solo — anche quando sei con un cliente. Provalo qui: parte una chiamata simulata e l'appuntamento entra in agenda.</div>
+        <div class="hint" style="margin-bottom:14px">In produzione risponde al telefono h24 e fissa gli appuntamenti da solo — anche quando sei con un cliente. Qui provi una <b>chiamata simulata</b>: l'appuntamento entra nell'agenda della demo.</div>
         <div class="chan" style="margin-bottom:16px">
-          <div class="ch"><div class="ci">🎙</div><div><b>Voce AI al telefono</b><div class="cd">Risponde, propone lo slot davvero libero e fissa l'appuntamento.</div></div></div>
+          <div class="ch"><div class="ci">🎙</div><div><b>Voce AI al telefono</b><div class="cd">In esercizio risponde, propone lo slot libero e fissa l'appuntamento (qui simulato).</div></div></div>
           <div class="ch"><div class="ci">📅</div><div><b>Entra in agenda</b><div class="cd">L'appuntamento preso a voce compare da solo nel calendario.</div></div></div>
           <div class="ch"><div class="ci">💬</div><div><b>Conferme WhatsApp</b><div class="cd">Promemoria automatici il giorno prima: meno no-show.</div></div></div>
         </div>
@@ -815,11 +815,11 @@ function renderHome(){
       <div class="hh-l">
         <span class="pill">una sola console, ogni ruolo</span>
         <h1>${esc(state.cfg.name)} gira tutto da qui.</h1>
-        <p>BoostedVoice prende gli appuntamenti h24, riempie l'agenda da sola e tiene insieme poltrone, cassa e schede cliente. Una console, ogni ruolo la sua vista.</p>
+        <p>Una volta attivo sul tuo numero, BoostedVoice prende gli appuntamenti h24 e riempie l'agenda da sola, tenendo insieme poltrone, cassa e schede cliente. Una console, ogni ruolo la sua vista.</p>
         <div class="chips"><button class="btn primary" data-go="cliente">Prova la prenotazione</button><button class="btn" data-go="agenda">Apri l'agenda</button></div>
       </div>
       <div class="chan">
-        <div class="ch"><div class="ci">🎙</div><div><b>Voce AI al telefono</b><div class="cd">Risponde, propone lo slot libero e fissa l'appuntamento.</div></div></div>
+        <div class="ch"><div class="ci">🎙</div><div><b>Voce AI al telefono</b><div class="cd">In esercizio risponde, propone lo slot libero e fissa l'appuntamento (qui simulato).</div></div></div>
         <div class="ch"><div class="ci">📱</div><div><b>Prenotazione online</b><div class="cd">Dal sito, Google o Instagram → entra in agenda.</div></div></div>
         <div class="ch"><div class="ci">💬</div><div><b>WhatsApp</b><div class="cd">Conferme e promemoria automatici, meno no-show.</div></div></div>
       </div>
@@ -1029,7 +1029,7 @@ function renderAgenda(){
 }
 
 // ===================== ASSISTENTE (voce) =====================
-function renderAssistente(){ roleStrip('roles-asst','🎙','Titolare','l\'assistente vocale che prende gli appuntamenti h24','telefono · voce'); }
+function renderAssistente(){ roleStrip('roles-asst','🎙','Titolare','l\'assistente vocale che, in produzione, prende gli appuntamenti h24 (demo)','telefono · voce'); }
 
 // ===================== POLTRONE / coda =====================
 function renderPoltrone(){
@@ -1405,7 +1405,7 @@ function openVoiceDemo(){
         <div id="bvSalonConvai"></div>
         <div id="bvSalonNote">
           <p class="bvc-vlead">La voce dal vivo si attiva sul numero del tuo salone: l'assistente risponde alle chiamate quando non puoi e fissa gli appuntamenti come nella simulazione qui accanto — controllando l'agenda reale.</p>
-          <p class="bvc-vnote">🔒 Numero, voce e dati trattati <b>nell'Unione Europea</b> — conforme GDPR e AI Act. In demo la conversazione la provi nella scheda <b>Simulazione</b>; la prova a voce dal vivo è su richiesta in presentazione.</p>
+          <p class="bvc-vnote">🔒 Numero, voce e dati trattati nel rispetto del GDPR. In demo la conversazione la provi nella scheda <b>Simulazione</b>; la prova a voce dal vivo è su richiesta in presentazione.</p>
         </div>
       </div>
     </div>

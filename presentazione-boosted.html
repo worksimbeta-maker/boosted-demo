@@ -499,9 +499,9 @@ var SCENES = {
         .to(q(r,'.oksite'),{opacity:1,duration:.01},'+=.15').from(q(r,'.oksite'),{y:8,opacity:0,duration:.4});
       return tl; } },
 
-  { act:'Arrivo', tag:'Voce · risponde', actor:'voce', actorLabel:'Assistente vocale · h24', label:'Al telefono risponde l’assistente', sub:'Voce AI (ElevenLabs) + Twilio: nessuno alza la cornetta', hold:6200,
+  { act:'Arrivo', tag:'Voce · risponde', actor:'voce', actorLabel:'Assistente vocale', label:'Al telefono risponde l’assistente', sub:'Assistente vocale AI + centralino: nessuno alza la cornetta', hold:6200,
     html:'<div class="vcard">'
-      +'<div class="vhead"><span class="vorb live"></span><div style="min-width:0"><b>Ristorante · BoostedVoice</b><div class="vst">● in chiamata · risponde h24</div></div><span class="vrec">● REC</span></div>'
+      +'<div class="vhead"><span class="vorb live"></span><div style="min-width:0"><b>Ristorante · BoostedVoice</b><div class="vst">● esempio di chiamata</div></div><span class="vrec">● REC</span></div>'
       +'<div class="vlog">'
       +'<div class="vbub ai b1">Ristorante, buonasera! Sono l’assistente. Posso aiutarla con una prenotazione?</div>'
       +'<div class="vbub caller b2">Buonasera, vorrei prenotare un tavolo</div>'
@@ -598,7 +598,7 @@ var SCENES = {
       return tl; } },
 
   { act:'Ordine', tag:'Approva', actor:'staff', actorLabel:'Staff', label:'Lo staff approva il tavolo', sub:'Un tap e il tavolo è aperto',
-    html:'<div class="panelm"><h4><span>Console di sala · staff</span><span class="pinhint">PIN 2468</span></h4>'
+    html:'<div class="panelm"><h4><span>Console di sala · staff</span><span class="pinhint">PIN ••••</span></h4>'
       +'<div class="lrow r-req"><span>🔔 <b>Tavolo 7</b> chiede di ordinare</span></div>'
       +'<div style="display:flex;gap:8px;margin:11px 0"><div class="btnbig appr" style="flex:1">Approva il tavolo</div><div class="ctrl" style="flex:0 0 auto;height:auto;padding:12px 15px;color:var(--text3)">Rifiuta</div></div>'
       +'<div class="okpop r-open" style="opacity:0;font-size:14px">✓ Tavolo 7 approvato</div></div>',
@@ -748,7 +748,7 @@ var SCENES = {
 
   { act:'Numeri', tag:'Incassi', actor:'titolare', actorLabel:'Titolare', label:'Incassi in tempo reale', sub:'Il titolare vede tutto, da subito',
     html:'<div class="dash"><div class="dl">Incassi di oggi</div>'
-      +'<div class="num"><span class="cur">€</span><span class="cv">0</span></div><div class="sub">▲ 18% rispetto a ieri</div>'
+      +'<div class="num"><span class="cur">€</span><span class="cv">0</span></div><div class="sub">▲ 18% · dato di esempio</div>'
       +'<div class="kpis"><div class="kpi"><b class="k1">0</b><small>coperti</small></div><div class="kpi"><b>€ <span class="k2">0</span></b><small>scontrino medio</small></div></div>'
       +'<div class="bars"><i style="height:40%"></i><i style="height:62%"></i><i style="height:48%"></i><i style="height:80%"></i><i style="height:70%"></i><i style="height:95%"></i></div>'
       +'<div class="barx"><span>L</span><span>M</span><span>M</span><span>G</span><span>V</span><span>S</span></div>'
@@ -815,7 +815,7 @@ var SCENES = {
     html:'<div class="panelm"><h4><span>Checkout</span><span>🛒 Felpa · M</span></h4>'
       +'<div class="frm" style="padding:0"><div class="fl fr"><span class="muted">Nome</span><b>Giulia Bianchi</b></div>'
       +'<div class="fl fr"><span class="muted">Indirizzo</span><b>Via Roma 1, Arezzo</b></div>'
-      +'<div class="fl fr"><span class="muted">Carta</span><b>4242 4242 · Visa</b></div></div>'
+      +'<div class="fl fr"><span class="muted">Carta</span><b>•••• 4242 · Visa</b></div></div>'
       +'<div class="btnbig payb" style="margin-top:11px">Paga 49,90€</div>'
       +'<div class="okpop payok" style="opacity:0">✓ Pagamento approvato</div></div>',
     anim:function(r){ var tl=G.timeline();
@@ -841,11 +841,11 @@ var SCENES = {
       return tl; } },
 
   { act:'Evasione', tag:'Spedizione', actor:'magazzino', actorLabel:'Magazzino', label:'Evasione e spedizione', sub:'Prep → pronto → spedito + etichetta', hold:6200,
-    html:'<div class="panelm"><h4><span>Magazzino · addetto</span><span>Sendcloud</span></h4>'
+    html:'<div class="panelm"><h4><span>Magazzino · addetto</span><span>Spedizioni</span></h4>'
       +'<div class="lrow"><span><b>#1001</b> · Felpa M</span><span style="color:var(--text3)">da evadere</span></div>'
       +'<div class="flow2"><span class="chip c0">In preparazione</span><span class="parr">›</span><span class="chip c1">Pronto</span><span class="parr">›</span><span class="chip c2">Spedito</span></div>'
       +'<div class="btnbig labelb">🏷️ Crea etichetta (1 click)</div>'
-      +'<div class="shipwrap"><div class="etichetta"><b>Sendcloud</b> · #1001<div>G. Bianchi — Arezzo</div><div class="bc"></div></div><div class="box">📦</div><div class="boxchk">✓</div></div></div>',
+      +'<div class="shipwrap"><div class="etichetta"><b>Spedizione</b> · #1001<div>G. Bianchi — Arezzo</div><div class="bc"></div></div><div class="box">📦</div><div class="boxchk">✓</div></div></div>',
     anim:function(r){ var tl=G.timeline(); var chips=[q(r,'.c0'),q(r,'.c1'),q(r,'.c2')];
       tl.add(function(){ setStates(chips,0,'amber'); })
         .from(chips[0],{opacity:0,y:8,duration:.3})
@@ -887,7 +887,7 @@ var SCENES = {
 
   { act:'Numeri', tag:'Incassi', actor:'titolare', actorLabel:'Titolare', label:'Incassi in tempo reale', sub:'Online e negozio, per il titolare',
     html:'<div class="dash"><div class="dl">Incassi di oggi</div>'
-      +'<div class="num"><span class="cur">€</span><span class="cv">0</span></div><div class="sub">▲ 24% · online + negozio</div>'
+      +'<div class="num"><span class="cur">€</span><span class="cv">0</span></div><div class="sub">▲ 24% · dato di esempio</div>'
       +'<div class="kpis"><div class="kpi"><b class="k1">0</b><small>ordini</small></div><div class="kpi"><b>€ <span class="k2">0</span></b><small>scontrino medio</small></div></div>'
       +'<div class="bars"><i style="height:50%"></i><i style="height:35%"></i><i style="height:68%"></i><i style="height:55%"></i><i style="height:82%"></i><i style="height:95%"></i></div>'
       +'<div class="barx"><span>L</span><span>M</span><span>M</span><span>G</span><span>V</span><span>S</span></div>'
@@ -970,9 +970,9 @@ var SCENES = {
         .to(q(r,'.emok'),{opacity:1,duration:.01},'+=.15').from(q(r,'.emok'),{y:8,opacity:0,duration:.4});
       return tl; } },
 
-  { act:'Voce', tag:'Voce · h24', actor:'voce', actorLabel:'Assistente vocale · h24', label:'Prende l’appuntamento parlando', sub:'Voce AI (ElevenLabs) + Twilio: nessuno alza la cornetta', hold:7200,
+  { act:'Voce', tag:'Voce · h24', actor:'voce', actorLabel:'Assistente vocale', label:'Prende l’appuntamento parlando', sub:'Assistente vocale AI + centralino: nessuno alza la cornetta', hold:7200,
     html:'<div class="vcard" style="width:360px">'
-      +'<div class="vhead"><span class="vorb live"></span><div style="min-width:0"><b>Salone · BoostedVoice</b><div class="vst">● in chiamata · risponde h24</div></div><span class="vrec">● REC</span></div>'
+      +'<div class="vhead"><span class="vorb live"></span><div style="min-width:0"><b>Salone · BoostedVoice</b><div class="vst">● esempio di chiamata</div></div><span class="vrec">● REC</span></div>'
       +'<div class="vlog">'
       +'<div class="vbub ai b1">Salone, buongiorno! Vuole fissare un appuntamento?</div>'
       +'<div class="vbub caller b2">Sì, un taglio per venerdì mattina</div>'
@@ -1036,7 +1036,7 @@ var SCENES = {
 
   { act:'Dopo', tag:'Incassi', actor:'titolare', actorLabel:'Titolare', label:'Incassi in tempo reale', sub:'Appuntamenti e cassa, tutto per il titolare', hold:5600,
     html:'<div class="dash"><div class="dl">Incassi di oggi</div>'
-      +'<div class="num"><span class="cur">€</span><span class="cv">0</span></div><div class="sub">▲ 18% · questa settimana</div>'
+      +'<div class="num"><span class="cur">€</span><span class="cv">0</span></div><div class="sub">▲ 18% · dato di esempio</div>'
       +'<div class="kpis"><div class="kpi"><b class="k1">0</b><small>appuntamenti</small></div><div class="kpi"><b>€ <span class="k2">0</span></b><small>scontrino medio</small></div></div>'
       +'<div class="bars"><i style="height:45%"></i><i style="height:60%"></i><i style="height:52%"></i><i style="height:70%"></i><i style="height:80%"></i><i style="height:92%"></i></div>'
       +'<div class="barx"><span>L</span><span>M</span><span>M</span><span>G</span><span>V</span><span>S</span></div>'
@@ -1153,7 +1153,7 @@ async function bvSay(my,role,text,pre){ if(pre)await bvWait(pre); if(!bvAlive(my
 function bvChoose(my,opts){ return new Promise(function(res){ var c=document.getElementById('bvChoices'); if(!c){res(null);return;} c.innerHTML=opts.map(function(o,i){ return '<button class="bvc-choice" data-i="'+i+'">'+esc(o.label)+'</button>'; }).join(''); Array.prototype.forEach.call(c.querySelectorAll('.bvc-choice'),function(b){ b.addEventListener('click',function(){ if(!bvAlive(my))return; var o=opts[+b.dataset.i]; c.innerHTML=''; bvBubble('caller',esc(o.say||o.label)); res(o); }); }); }); }
 function bvTool(my,label,result){ return new Promise(function(res){ var l=document.getElementById('bvLog'); if(!l){res();return;} var d=document.createElement('div'); d.className='bvtool'; d.innerHTML='<span class="bvt-spin"></span> '+esc(label); l.appendChild(d); bvScroll(); setTimeout(function(){ if(d.isConnected){ d.classList.add('done'); d.innerHTML='<span class="bvt-ok">✓</span> '+esc(label)+' · <b>'+esc(result)+'</b>'; bvScroll(); } res(); },1150); }); }
 function bvPhone(){ simN++; return '+39 333 '+(100+simN%900)+' '+(1000+(simN*37)%9000); }
-function mountBvConvai(){ var slot=document.getElementById('bvConvai'); if(!slot||slot.children.length)return; var el=document.createElement('elevenlabs-convai'); el.setAttribute('agent-id','agent_1501kvg8ar32e7f9javsc99wt2yf'); try{ el.setAttribute('dynamic-variables',JSON.stringify({current_date:new Date().toLocaleDateString('it-IT',{weekday:'long',year:'numeric',month:'long',day:'numeric'})})); }catch(e){} slot.appendChild(el); if(!bvConvaiLoaded){ bvConvaiLoaded=true; var s=document.createElement('script'); s.src='https://unpkg.com/@elevenlabs/convai-widget-embed'; s.async=true; document.body.appendChild(s); } }
+function mountBvConvai(){ /* widget vocale esterno disattivato: nessun agent-id pubblico, nessuno script di terze parti. La prova a voce dal vivo è su richiesta in presentazione. */ }
 window.bvOpen=function(){
   try{ window.playing=false; if(typeof window.setPlayUI==='function')window.setPlayUI(); if(window.timer)clearTimeout(window.timer); }catch(e){}
   var my=++bvToken; bvBooking={};
