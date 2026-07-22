@@ -95,7 +95,7 @@ var TABS = [
       {label:'Titolare',        path:'/gestionale', hint:'incassi e magazzino'},
       {label:'Marketing',       path:'/marketing',  hint:'PIN 1379 · email + WhatsApp'},
   ]},
-  { id:'qr', name:'Ordini al tavolo · QR', live:'qr', presentation:'Presentazione-Ordini-QR.html', screens:[
+  { id:'qr', name:'Ordini al tavolo · QR', live:'qr', demo:'boosted-ordini-qr.html', presentation:'Presentazione-Ordini-QR.html', screens:[
       {label:'Sito prenotazioni', path:'/demo',       hint:'lato cliente · prenota', mobile:true},
       {label:'Sala / Staff',      path:'/staff',      hint:'PIN 2468'},
       {label:'Cucina (KDS)',      path:'/kds',        hint:'schermo comande'},
@@ -126,10 +126,21 @@ var view=document.getElementById('view'), over=document.getElementById('over'),
 
 function svc(id){ return TABS.find(function(d){return d.id===id}); }
 function liveUrl(d){ return d.live && LIVE[d.live] ? LIVE[d.live].replace(/\/+$/,'') : ''; }
+// Schermi effettivi: se il servizio ha un backend live lo usa (le sue schermate);
+// finché il live non c'è ma esiste una demo statica interattiva, mostra quella + la presentazione.
+function screensOf(d){
+  if(!liveUrl(d) && d.demo){
+    return [
+      {label:'Demo interattiva', demo:d.demo, hint:'ordina dal tavolo · provala tu', mobile:true},
+      {label:'Presentazione', pres:d.presentation, hint:'tutti i ruoli, passo-passo'},
+    ];
+  }
+  return d.screens;
+}
 
 function renderTabs(){
   tabsEl.innerHTML = TABS.map(function(d){
-    var rdy = d.single || d.staticRoute || liveUrl(d);
+    var rdy = d.single || d.staticRoute || d.demo || liveUrl(d);
     return '<button class="tab'+(d.id===active?' on':'')+(rdy?' ready':'')+'" onclick="selectService(\''+d.id+'\')"><span class="led"></span>'+d.name+'</button>';
   }).join('');
 }
@@ -143,11 +154,15 @@ function renderToolbar(){
       + '<a class="act" href="'+d.single+'" target="_blank" rel="noopener">↗ A tutto schermo</a>';
     return;
   }
-  var subs=d.screens.map(function(s,i){
+  var scr=screensOf(d);
+  var subs=scr.map(function(s,i){
     return '<button class="sub'+(i===page[active]?' on':'')+'" onclick="selectPage('+i+')">'+s.label+'<small>'+s.hint+'</small></button>';
   }).join('');
-  var cur=d.screens[page[active]];
-  var full = d.staticRoute ? (d.staticRoute+(cur.q?('?'+cur.q):'')) : (liveUrl(d)? liveUrl(d)+cur.path : (d.presentation||'#'));
+  var cur=scr[page[active]]||scr[0];
+  var full = d.staticRoute ? (d.staticRoute+(cur.q?('?'+cur.q):''))
+           : cur.demo ? cur.demo
+           : cur.pres ? cur.pres
+           : (liveUrl(d)? liveUrl(d)+cur.path : (d.presentation||'#'));
   toolEl.innerHTML = subs
     + '<div class="sp"></div>'
     + '<button class="act" onclick="reloadView()">↻ Ricarica</button>'
@@ -166,9 +181,11 @@ function loadView(){
   var d=svc(active), stage=document.querySelector('.stage');
   stage.classList.remove('mob');
   if(d.single){ setSrc(d.single, 'Carico la presentazione…'); return; }
-  var s=d.screens[page[active]];
+  var scr=screensOf(d), s=scr[page[active]]||scr[0];
   stage.classList.toggle('mob', !!(s && s.mobile));
   if(d.staticRoute){ setSrc(d.staticRoute+(s.q?('?'+s.q):''), 'Carico la demo…'); return; }
+  if(s && s.demo){ setSrc(s.demo, 'Carico la demo…'); return; }
+  if(s && s.pres){ setSrc(s.pres, 'Carico la presentazione…'); return; }
   // scheda live (ecom/qr)
   var base=liveUrl(d);
   if(base){ setSrc(base+s.path, 'Carico la demo live…'); return; }

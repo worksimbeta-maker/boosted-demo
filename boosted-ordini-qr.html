@@ -1,0 +1,1400 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo — Ordini al tavolo via QR · Boosted Company</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   Ordini QR Demo — Boosted Company
+   dark #08090a · lilla #C9A9E9 · Inter
+   ============================================================ */
+:root{
+  color-scheme:dark;
+  --bg:        #08090a;
+  --bg2:       #0f1012;
+  --surface:   #131519;
+  --surface2:  #1a1d22;
+  --surface3:  #20242b;
+  --line:      #2a2d35;
+  --line2:     #1e2128;
+  --lilla:     #C9A9E9;
+  --lilla-dim: #8B6FB8;
+  --lilla-soft:rgba(201,169,233,0.10);
+  --lilla-glow:rgba(201,169,233,0.22);
+  --rosa:      #E8B7D4;
+  --cream:     #e8e8ec;
+  --cream-dim: #a0a3ad;
+  --muted:     #5c6070;
+  --green:     #4ade80;
+  --green-soft:rgba(74,222,128,0.12);
+  --orange:    #fb923c;
+  --orange-soft:rgba(251,146,60,0.12);
+  --red:       #f87171;
+  --red-soft:  rgba(248,113,113,0.12);
+  --shadow:    0 12px 36px rgba(0,0,0,0.6);
+  --shadow-lilla:0 0 28px rgba(201,169,233,0.18);
+  --r:         14px;
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:
+    radial-gradient(ellipse 70% 40% at 20% 0%,rgba(201,169,233,0.06) 0%,transparent 60%),
+    radial-gradient(ellipse 50% 30% at 80% 100%,rgba(139,111,184,0.05) 0%,transparent 60%),
+    var(--bg);
+  color:var(--cream);
+  font-size:13px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;cursor:pointer}
+a{color:var(--lilla);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ---- topbar ---- */
+.topbar{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 20px;
+  border-bottom:1px solid var(--line2);
+  background:rgba(8,9,10,0.92);
+  position:sticky;top:0;z-index:40;
+  backdrop-filter:blur(12px);
+  flex-wrap:wrap;
+}
+.back-link{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--cream-dim);border:1px solid var(--line);border-radius:8px;padding:5px 11px;transition:.15s}
+.back-link:hover{border-color:var(--lilla);color:var(--lilla);text-decoration:none}
+.back-link svg{width:14px;height:14px;flex-shrink:0}
+.topbar-title{font-size:15px;font-weight:700;letter-spacing:-.01em;color:var(--cream)}
+.topbar-title span{color:var(--lilla)}
+.badge-demo{background:var(--lilla);color:#0a0a0e;font-weight:700;font-size:10.5px;letter-spacing:.07em;padding:3px 9px;border-radius:999px;text-transform:uppercase;white-space:nowrap}
+.spacer{flex:1}
+.topbar-brand{font-size:11.5px;color:var(--muted)}
+.topbar-brand b{color:var(--lilla)}
+.btn-tour{
+  display:flex;align-items:center;gap:7px;
+  background:var(--lilla);color:#0a0a0e;
+  border:none;border-radius:9px;
+  padding:8px 14px;font-size:12.5px;font-weight:700;
+  transition:.15s;white-space:nowrap;
+}
+.btn-tour:hover{background:#DFC8F5;box-shadow:0 0 20px rgba(201,169,233,0.3)}
+.btn-tour svg{width:14px;height:14px}
+.btn-tour.active{background:var(--lilla-dim)}
+
+/* ---- tour banner ---- */
+.tour-banner{
+  display:none;
+  align-items:center;gap:12px;
+  padding:10px 20px;
+  background:var(--lilla-soft);
+  border-bottom:1px solid rgba(201,169,233,0.2);
+  font-size:13px;font-weight:600;color:var(--cream);
+  flex-wrap:wrap;
+}
+.tour-banner.show{display:flex}
+.tour-step-label{color:var(--lilla)}
+.tour-skip{margin-left:auto;border:1px solid rgba(201,169,233,0.3);background:transparent;border-radius:7px;padding:4px 10px;font-size:12px;color:var(--cream-dim)}
+.tour-skip:hover{border-color:var(--lilla);color:var(--lilla)}
+
+/* ---- guide ---- */
+.guide-wrap{padding:14px 20px 0}
+.guide{
+  background:var(--surface);border:1px solid var(--line);
+  border-left:3px solid var(--lilla);border-radius:12px;overflow:hidden;
+}
+.guide summary{
+  cursor:pointer;padding:12px 15px;font-weight:700;font-size:13.5px;
+  list-style:none;display:flex;align-items:center;gap:8px;color:var(--cream);
+}
+.guide summary::-webkit-details-marker{display:none}
+.guide-chev{transition:.2s;color:var(--lilla)}
+.guide[open] .guide-chev{transform:rotate(90deg)}
+.guide-body{padding:0 17px 15px;font-size:13px;line-height:1.65;color:var(--cream-dim)}
+.guide-body ol{padding-left:18px;margin-top:5px}
+.guide-body li{margin:6px 0}
+.guide-body b{color:var(--cream)}
+.kkey{background:var(--lilla-soft);border:1px solid rgba(201,169,233,0.3);border-radius:5px;padding:1px 6px;font-weight:600;color:var(--lilla);font-size:12px;white-space:nowrap}
+
+/* ---- main layout ---- */
+.stage{
+  display:grid;
+  grid-template-columns: 280px 1fr 1fr 240px;
+  gap:16px;
+  padding:16px 20px 40px;
+  max-width:1380px;margin:0 auto;
+  align-items:start;
+}
+
+/* panel label */
+.panel-label{
+  font-size:10.5px;font-weight:700;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--muted);
+  margin-bottom:9px;display:flex;align-items:center;gap:7px;
+}
+.panel-label .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.panel-label .dot.green{background:var(--green)}
+.panel-label .dot.lilla{background:var(--lilla)}
+.panel-label .dot.orange{background:var(--orange)}
+.panel-label .dot.rosa{background:var(--rosa)}
+
+/* ============================================================
+   PANNELLO 1 — Telefono cliente (mockup smartphone)
+   ============================================================ */
+.col-phone{}
+.phone-frame{
+  background:#111318;border-radius:36px;
+  padding:12px 10px;
+  box-shadow:var(--shadow),inset 0 0 0 1px #2a2d35;
+  border:1px solid #1e2128;
+  position:relative;
+}
+.phone-notch{
+  width:90px;height:24px;
+  background:#0a0c0f;border-radius:0 0 14px 14px;
+  margin:0 auto 8px;
+  display:flex;align-items:center;justify-content:center;
+}
+.phone-cam{width:8px;height:8px;border-radius:50%;background:#1c1f27;border:1px solid #2a2d35}
+.phone-screen{
+  background:var(--bg);border-radius:26px;
+  overflow:hidden;min-height:520px;
+  position:relative;
+}
+.phone-home-bar{
+  height:4px;width:80px;border-radius:2px;
+  background:var(--line);margin:8px auto 4px;
+}
+
+/* screen states */
+.phone-view{display:none;position:absolute;inset:0;overflow:hidden auto;flex-direction:column}
+.phone-view.active{display:flex}
+
+/* qr screen */
+.qr-screen{
+  flex:1;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%,rgba(201,169,233,0.08),transparent),
+    var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:28px 20px;gap:20px;text-align:center;
+}
+.qr-icon{
+  width:90px;height:90px;border-radius:18px;
+  background:var(--lilla-soft);border:2px solid rgba(201,169,233,0.3);
+  display:flex;align-items:center;justify-content:center;
+}
+.qr-icon svg{width:54px;height:54px;color:var(--lilla)}
+.qr-resto-name{font-size:19px;font-weight:800;letter-spacing:-.02em;color:var(--cream)}
+.qr-table-badge{
+  background:var(--lilla-soft);border:1px solid rgba(201,169,233,0.3);
+  border-radius:9px;padding:7px 16px;
+  font-size:14px;font-weight:700;color:var(--lilla);
+}
+.qr-hint{font-size:12.5px;color:var(--cream-dim);line-height:1.5;max-width:200px}
+.btn-scan{
+  width:100%;
+  background:var(--lilla);color:#0a0a0e;
+  border:none;border-radius:12px;padding:14px;
+  font-size:15px;font-weight:800;letter-spacing:-.01em;
+  transition:.15s;
+}
+.btn-scan:hover{background:#DFC8F5;box-shadow:0 0 24px rgba(201,169,233,0.35)}
+.btn-scan:active{transform:scale(.97)}
+
+/* waiting screen */
+.waiting-screen{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:32px 20px;gap:16px;text-align:center;
+  background:var(--bg);
+}
+.pulse-ring{
+  width:64px;height:64px;border-radius:50%;
+  border:2px solid var(--lilla);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+  animation:pulse-ring 2s infinite;
+}
+.pulse-ring::before{
+  content:'';position:absolute;inset:-8px;border-radius:50%;
+  border:1px solid rgba(201,169,233,0.25);
+  animation:pulse-ring 2s .4s infinite;
+}
+.pulse-ring svg{width:28px;height:28px;color:var(--lilla)}
+@keyframes pulse-ring{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.7;transform:scale(1.05)}}
+.waiting-title{font-size:16px;font-weight:700;color:var(--cream)}
+.waiting-sub{font-size:12.5px;color:var(--cream-dim);line-height:1.5}
+.dots-anim::after{content:'';animation:dots 1.6s infinite}
+@keyframes dots{0%{content:''}33%{content:'.'}66%{content:'..'}100%{content:'...'}}
+
+/* menu screen */
+.menu-screen{flex:1;display:flex;flex-direction:column;background:var(--bg)}
+.menu-header{
+  padding:14px 14px 10px;
+  background:linear-gradient(180deg,#0f1012,var(--bg));
+  border-bottom:1px solid var(--line2);
+}
+.menu-resto{font-size:16px;font-weight:800;letter-spacing:-.02em;color:var(--cream)}
+.menu-table-tag{font-size:11px;font-weight:600;color:var(--lilla);margin-top:2px}
+.menu-cats{
+  display:flex;gap:6px;padding:10px 14px;
+  overflow-x:auto;border-bottom:1px solid var(--line2);
+  scrollbar-width:none;
+}
+.menu-cats::-webkit-scrollbar{display:none}
+.cat-tab{
+  border:1px solid var(--line);background:var(--surface);
+  border-radius:999px;padding:5px 12px;
+  font-size:11.5px;font-weight:600;color:var(--cream-dim);
+  white-space:nowrap;transition:.12s;
+}
+.cat-tab.active,.cat-tab:hover{border-color:var(--lilla);color:var(--lilla);background:var(--lilla-soft)}
+.menu-items{flex:1;overflow-y:auto;padding:10px 12px;scrollbar-width:thin}
+.menu-item{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:11px;padding:10px 11px;margin-bottom:7px;
+  transition:.12s;
+}
+.menu-item:hover{border-color:rgba(201,169,233,0.3)}
+.menu-item-info{flex:1;min-width:0}
+.menu-item-name{font-size:13px;font-weight:600;color:var(--cream)}
+.menu-item-price{font-size:12px;font-weight:700;color:var(--lilla);margin-top:2px}
+.menu-item-cat{font-size:10.5px;color:var(--muted)}
+.qty-ctrl{display:flex;align-items:center;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.qty-btn{
+  width:28px;height:28px;border:none;background:var(--surface2);
+  font-size:16px;font-weight:700;color:var(--lilla);
+  display:flex;align-items:center;justify-content:center;
+  transition:.1s;
+}
+.qty-btn:hover{background:var(--lilla-soft)}
+.qty-num{width:26px;text-align:center;font-size:13px;font-weight:700;color:var(--cream)}
+
+/* cottura carne (solo carni rosse) */
+.cook-row{
+  flex-basis:100%;width:100%;
+  display:flex;align-items:center;gap:8px;
+  margin-top:9px;padding-top:9px;border-top:1px dashed var(--line);
+}
+.cook-label{font-size:11.5px;font-weight:600;color:var(--rosa);display:flex;align-items:center;gap:5px}
+.cook-select{
+  margin-left:auto;
+  background:var(--surface2);color:var(--cream);
+  border:1px solid var(--line);border-radius:8px;
+  padding:6px 30px 6px 10px;font-family:inherit;font-size:12px;font-weight:600;
+  cursor:pointer;transition:.12s;
+  -webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='none' stroke='%23C9A9E9' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='4,6 8,10 12,6'/></svg>");
+  background-repeat:no-repeat;background-position:right 9px center;
+}
+.cook-select:hover{border-color:var(--lilla)}
+.cook-select:focus{outline:none;border-color:var(--lilla);box-shadow:0 0 0 3px var(--lilla-soft)}
+
+.cart-bar{
+  padding:10px 12px;
+  border-top:1px solid var(--line);
+  background:var(--surface);
+}
+.cart-bar-info{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.cart-bar-count{font-size:12.5px;font-weight:600;color:var(--cream-dim)}
+.cart-bar-total{margin-left:auto;font-size:14px;font-weight:800;color:var(--lilla)}
+.btn-send{
+  width:100%;background:var(--lilla);color:#0a0a0e;
+  border:none;border-radius:10px;padding:12px;
+  font-size:14px;font-weight:800;transition:.15s;
+}
+.btn-send:disabled{opacity:.4;cursor:default}
+.btn-send:not(:disabled):hover{background:#DFC8F5;box-shadow:0 0 20px rgba(201,169,233,0.3)}
+
+/* sent screen */
+.sent-screen{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:30px 20px;gap:14px;text-align:center;
+  background:var(--bg);
+}
+.check-circle{
+  width:64px;height:64px;border-radius:50%;
+  background:var(--green-soft);border:2px solid rgba(74,222,128,0.3);
+  display:flex;align-items:center;justify-content:center;
+}
+.check-circle svg{width:30px;height:30px;color:var(--green)}
+.sent-title{font-size:16px;font-weight:700;color:var(--cream)}
+.sent-sub{font-size:12.5px;color:var(--cream-dim);line-height:1.5}
+.sent-order-preview{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:10px 13px;width:100%;text-align:left;
+  font-size:12px;color:var(--cream-dim);line-height:1.8;
+}
+
+/* closed screen */
+.closed-screen{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:32px 20px;gap:16px;text-align:center;
+  background:var(--bg);
+}
+.closed-icon{
+  width:64px;height:64px;border-radius:50%;
+  background:var(--surface);border:2px solid var(--line);
+  display:flex;align-items:center;justify-content:center;
+}
+.closed-icon svg{width:30px;height:30px;color:var(--muted)}
+.closed-title{font-size:16px;font-weight:700;color:var(--cream-dim)}
+.closed-sub{font-size:12.5px;color:var(--muted);line-height:1.5}
+
+/* ============================================================
+   PANNELLO 2 — Console Staff
+   ============================================================ */
+.staff-panel{
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);overflow:hidden;
+}
+.staff-header{
+  padding:13px 15px;
+  background:var(--surface2);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.staff-header h2{font-size:14px;font-weight:700;color:var(--cream)}
+.status-pill{
+  font-size:10.5px;font-weight:700;letter-spacing:.06em;
+  padding:3px 9px;border-radius:999px;text-transform:uppercase;
+  background:var(--green-soft);color:var(--green);border:1px solid rgba(74,222,128,0.25);
+}
+.staff-body{padding:13px}
+
+/* request card */
+.request-card{
+  background:var(--bg2);border:1px solid var(--line);border-radius:11px;
+  padding:12px 13px;margin-bottom:10px;
+  animation:slide-in .25s ease;
+  display:none;
+}
+.request-card.show{display:block}
+.request-card.pulse-highlight{
+  border-color:var(--lilla) !important;
+  box-shadow:0 0 0 2px rgba(201,169,233,0.2);
+}
+@keyframes slide-in{from{transform:translateY(-8px);opacity:0}to{transform:translateY(0);opacity:1}}
+.req-header{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.req-icon{
+  width:36px;height:36px;border-radius:9px;flex-shrink:0;
+  background:var(--lilla-soft);border:1px solid rgba(201,169,233,0.25);
+  display:flex;align-items:center;justify-content:center;
+}
+.req-icon svg{width:18px;height:18px;color:var(--lilla)}
+.req-info h3{font-size:14px;font-weight:700;color:var(--cream)}
+.req-info p{font-size:12px;color:var(--cream-dim);margin-top:1px}
+.req-tag{
+  margin-left:auto;
+  font-size:10px;font-weight:700;letter-spacing:.05em;
+  padding:2px 8px;border-radius:999px;text-transform:uppercase;
+  background:var(--orange-soft);color:var(--orange);
+  border:1px solid rgba(251,146,60,0.25);
+  white-space:nowrap;
+}
+.req-actions{display:flex;gap:8px}
+.btn-approve{
+  flex:1;background:var(--lilla);color:#0a0a0e;
+  border:none;border-radius:9px;padding:9px 14px;
+  font-size:13px;font-weight:700;transition:.15s;
+}
+.btn-approve:hover{background:#DFC8F5;box-shadow:0 0 16px rgba(201,169,233,0.28)}
+.btn-reject{
+  border:1px solid var(--line);background:var(--surface2);
+  color:var(--cream-dim);border-radius:9px;padding:9px 12px;
+  font-size:13px;font-weight:600;transition:.12s;
+}
+.btn-reject:hover{border-color:var(--red);color:var(--red)}
+
+/* tables grid */
+.tables-label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.tables-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.table-card{
+  background:var(--bg2);border:1px solid var(--line);border-radius:10px;
+  padding:10px 11px;cursor:default;transition:.15s;
+  position:relative;
+}
+.table-card.open-state{
+  border-color:rgba(201,169,233,0.35);
+  background:var(--lilla-soft);
+}
+.table-card.requested-state{
+  border-color:rgba(251,146,60,0.35);
+  background:var(--orange-soft);
+  animation:req-pulse 1.5s ease-in-out infinite;
+}
+@keyframes req-pulse{0%,100%{box-shadow:none}50%{box-shadow:0 0 12px rgba(251,146,60,0.25)}}
+.table-card-name{font-size:13px;font-weight:700;color:var(--cream)}
+.table-card-state{font-size:11px;color:var(--muted);margin-top:2px}
+.table-card.open-state .table-card-state{color:var(--lilla)}
+.table-card.requested-state .table-card-state{color:var(--orange)}
+.table-card-actions{margin-top:8px;display:none}
+.table-card.open-state .table-card-actions{display:block}
+.btn-close-table{
+  width:100%;background:var(--surface2);border:1px solid var(--line);
+  color:var(--cream-dim);border-radius:7px;padding:6px;
+  font-size:11.5px;font-weight:600;transition:.12s;
+}
+.btn-close-table:hover{border-color:var(--red);color:var(--red)}
+
+/* orders in staff view */
+.staff-orders-section{margin-top:12px}
+.staff-orders-label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.staff-order-row{
+  background:var(--bg2);border:1px solid var(--line);border-radius:9px;
+  padding:9px 11px;margin-bottom:7px;
+  display:flex;align-items:flex-start;gap:9px;
+}
+.staff-order-table{font-size:11.5px;font-weight:700;color:var(--lilla);min-width:68px}
+.staff-order-items{flex:1;font-size:12px;color:var(--cream-dim);line-height:1.6}
+.staff-order-status{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid;white-space:nowrap}
+.staff-order-status.new{background:var(--lilla-soft);color:var(--lilla);border-color:rgba(201,169,233,0.3)}
+.staff-order-status.preparing{background:var(--orange-soft);color:var(--orange);border-color:rgba(251,146,60,0.3)}
+.staff-order-status.ready{background:var(--green-soft);color:var(--green);border-color:rgba(74,222,128,0.3)}
+.empty-state{padding:18px;text-align:center;color:var(--muted);font-size:13px}
+
+/* ============================================================
+   PANNELLO 3 — Cucina KDS
+   ============================================================ */
+.kds-panel{
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);overflow:hidden;
+  display:flex;flex-direction:column;
+}
+.kds-header{
+  padding:13px 15px;
+  background:#0d1117;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:10px;
+}
+.kds-header h2{font-size:14px;font-weight:700;color:var(--cream)}
+.kds-live{
+  display:flex;align-items:center;gap:5px;
+  font-size:10.5px;font-weight:700;color:var(--green);
+}
+.kds-live-dot{
+  width:6px;height:6px;border-radius:50%;background:var(--green);
+  animation:blink 1.4s ease-in-out infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.kds-body{padding:13px;flex:1;overflow-y:auto}
+.kds-card{
+  border-radius:11px;padding:12px 13px;
+  margin-bottom:9px;border-left:3px solid;
+  animation:slide-in .3s ease;
+  transition:.2s;
+}
+.kds-card.new{
+  background:var(--lilla-soft);border-color:var(--lilla);
+  border-top:1px solid rgba(201,169,233,0.2);
+  border-right:1px solid rgba(201,169,233,0.2);
+  border-bottom:1px solid rgba(201,169,233,0.2);
+}
+.kds-card.preparing{
+  background:var(--orange-soft);border-color:var(--orange);
+  border-top:1px solid rgba(251,146,60,0.2);
+  border-right:1px solid rgba(251,146,60,0.2);
+  border-bottom:1px solid rgba(251,146,60,0.2);
+}
+.kds-card.ready{
+  background:var(--green-soft);border-color:var(--green);
+  border-top:1px solid rgba(74,222,128,0.2);
+  border-right:1px solid rgba(74,222,128,0.2);
+  border-bottom:1px solid rgba(74,222,128,0.2);
+}
+.kds-card-header{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.kds-table{font-size:15px;font-weight:800;color:var(--cream)}
+.kds-time{font-size:11.5px;color:var(--muted)}
+.kds-status-badge{
+  margin-left:auto;font-size:10.5px;font-weight:700;
+  padding:2px 9px;border-radius:999px;border:1px solid;
+}
+.kds-card.new .kds-status-badge{background:var(--lilla-soft);color:var(--lilla);border-color:rgba(201,169,233,0.4)}
+.kds-card.preparing .kds-status-badge{background:var(--orange-soft);color:var(--orange);border-color:rgba(251,146,60,0.4)}
+.kds-card.ready .kds-status-badge{background:var(--green-soft);color:var(--green);border-color:rgba(74,222,128,0.4)}
+.kds-items{font-size:13px;color:var(--cream);line-height:1.7;margin-bottom:8px}
+.kds-item{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.kds-item-qty{font-weight:700;color:var(--lilla);min-width:18px}
+.kds-cook{
+  font-size:10.5px;font-weight:700;color:var(--rosa);
+  background:rgba(232,183,212,0.12);border:1px solid rgba(232,183,212,0.35);
+  border-radius:6px;padding:1px 7px;letter-spacing:.01em;
+}
+.kds-card.preparing .kds-item-qty{color:var(--orange)}
+.kds-card.ready .kds-item-qty{color:var(--green)}
+.kds-actions{display:flex;gap:7px}
+.btn-kds{
+  border:none;border-radius:8px;padding:7px 12px;
+  font-size:12px;font-weight:700;transition:.12s;
+}
+.btn-kds.advance{background:var(--orange);color:#0a0a0e}
+.btn-kds.advance:hover{background:#fdba74}
+.btn-kds.complete{background:var(--green);color:#0a0a0e}
+.btn-kds.complete:hover{background:#86efac}
+.kds-empty{padding:28px 14px;text-align:center;color:var(--muted);font-size:13px;line-height:1.6}
+
+/* ============================================================
+   PANNELLO 4 — Mini gestionale incassi
+   ============================================================ */
+.gestionale-panel{
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);overflow:hidden;
+  position:sticky;top:64px;
+}
+.gest-header{
+  padding:12px 14px;
+  background:var(--surface2);border-bottom:1px solid var(--line);
+}
+.gest-header h2{font-size:13.5px;font-weight:700;color:var(--cream)}
+.gest-header p{font-size:11px;color:var(--muted);margin-top:2px}
+.gest-body{padding:13px}
+.gest-kpi{
+  background:var(--bg2);border:1px solid var(--line);border-radius:10px;
+  padding:11px 13px;margin-bottom:9px;text-align:center;
+}
+.gest-kpi-val{font-size:22px;font-weight:800;color:var(--lilla);letter-spacing:-.02em}
+.gest-kpi-label{font-size:10.5px;color:var(--muted);margin-top:2px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.gest-row{
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg2);border:1px solid var(--line);border-radius:9px;
+  padding:9px 11px;margin-bottom:7px;
+}
+.gest-row-icon{
+  width:30px;height:30px;border-radius:7px;flex-shrink:0;
+  background:var(--lilla-soft);border:1px solid rgba(201,169,233,0.2);
+  display:flex;align-items:center;justify-content:center;
+}
+.gest-row-icon svg{width:15px;height:15px;color:var(--lilla)}
+.gest-row-info{flex:1}
+.gest-row-label{font-size:12px;font-weight:600;color:var(--cream-dim)}
+.gest-row-val{font-size:13px;font-weight:700;color:var(--cream)}
+.gest-section-label{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:10px 0 7px}
+.gest-dish{
+  display:flex;align-items:center;gap:7px;
+  padding:6px 0;border-bottom:1px solid var(--line2);
+  font-size:12.5px;
+}
+.gest-dish:last-child{border-bottom:none}
+.gest-dish-name{flex:1;color:var(--cream-dim)}
+.gest-dish-qty{font-weight:700;color:var(--cream)}
+.flash-update{animation:flash-up .5s ease}
+@keyframes flash-up{0%{background:rgba(201,169,233,0.18)}100%{background:transparent}}
+
+/* ============================================================
+   RESPONSIVE — mobile: 1 colonna + tab switcher
+   ============================================================ */
+.mobile-tabs{display:none}
+@media(max-width:900px){
+  .stage{
+    grid-template-columns:1fr;
+    padding:12px 12px 30px;
+    gap:0;
+  }
+  .col-phone,.staff-panel,.kds-panel,.gestionale-panel{
+    display:none;
+  }
+  .col-phone.tab-active,.staff-panel.tab-active,.kds-panel.tab-active,.gestionale-panel.tab-active{
+    display:block;
+  }
+  .mobile-tabs{
+    display:flex;border-bottom:1px solid var(--line);
+    background:var(--surface2);
+    position:sticky;top:53px;z-index:30;
+    overflow-x:auto;scrollbar-width:none;
+  }
+  .mobile-tabs::-webkit-scrollbar{display:none}
+  .mob-tab{
+    border:none;background:transparent;
+    padding:10px 16px;font-size:12.5px;font-weight:600;
+    color:var(--muted);white-space:nowrap;border-bottom:2px solid transparent;
+  }
+  .mob-tab.active{color:var(--lilla);border-bottom-color:var(--lilla)}
+  .panel-label{padding:0 0 0 0;margin:12px 0 7px}
+  .phone-frame{max-width:320px;margin:0 auto}
+}
+
+/* ============================================================
+   Tour highlight
+   ============================================================ */
+.tour-ring{
+  outline:2px solid var(--lilla) !important;
+  outline-offset:3px;
+  box-shadow:0 0 20px rgba(201,169,233,0.35) !important;
+  transition:outline .2s,box-shadow .2s;
+}
+.tour-arrow{
+  position:fixed;
+  background:var(--lilla);color:#0a0a0e;
+  font-size:12px;font-weight:700;border-radius:8px;padding:6px 12px;
+  pointer-events:none;z-index:100;
+  white-space:nowrap;
+  animation:tour-bounce .7s ease-in-out infinite alternate;
+}
+@keyframes tour-bounce{from{transform:translateY(0)}to{transform:translateY(-4px)}}
+</style>
+</head>
+<body>
+
+<!-- ========== TOPBAR ========== -->
+<nav class="topbar">
+  <a class="back-link" href="/">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12L6 8l4-4"/></svg>
+    Torna ai gestionali
+  </a>
+  <span class="topbar-title">Ordini al tavolo <span>via QR</span></span>
+  <span class="badge-demo">Demo dimostrativa — dati di esempio</span>
+  <span class="spacer"></span>
+  <button id="btnReset" onclick="resetDemo()" title="Azzera la demo e riparti pulito"
+    style="display:inline-flex;align-items:center;gap:6px;margin-right:8px;border:1px solid rgba(201,169,233,0.30);background:transparent;color:#C9A9E9;padding:8px 12px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:.15s"
+    onmouseenter="this.style.background='rgba(201,169,233,0.10)';this.style.borderColor='rgba(201,169,233,0.55)'"
+    onmouseleave="this.style.background='transparent';this.style.borderColor='rgba(201,169,233,0.30)'">
+    ↺ Reset
+  </button>
+  <button class="btn-tour" id="btnTour" onclick="toggleTour()">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5,3 13,8 5,13"/></svg>
+    Guarda il giro automatico
+  </button>
+  <span class="topbar-brand">by <b>Boosted</b></span>
+</nav>
+
+<!-- ========== TOUR BANNER ========== -->
+<div class="tour-banner" id="tourBanner">
+  <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#C9A9E9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5,3 13,8 5,13"/></svg>
+  <span>Tour automatico &nbsp;·&nbsp; <span class="tour-step-label" id="tourStepLabel">Passo 1 di 7</span> &nbsp;— <span id="tourStepDesc">Il cliente scansiona il QR del tavolo</span></span>
+  <button class="tour-skip" onclick="stopTour()">Esci dal tour</button>
+</div>
+
+<!-- ========== GUIDA ========== -->
+<div class="guide-wrap">
+  <details class="guide" open>
+    <summary>
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#C9A9E9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 11V8M8 5h.01"/></svg>
+      Come usare questa demo
+      <svg class="guide-chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4l4 4-4 4"/></svg>
+    </summary>
+    <div class="guide-body">
+      <ol>
+        <li>Sul <b>telefono cliente</b> (sinistra) premi <span class="kkey">Scansiona il QR</span> — arriva la richiesta allo staff.</li>
+        <li>Nella <b>console staff</b> premi <span class="kkey">Approva</span> — il telefono apre il menu.</li>
+        <li>Scegli i piatti con <b>+/−</b> e premi <span class="kkey">Invia ordine</span>.</li>
+        <li>La comanda compare nel <b>KDS cucina</b>. Cambia stato: <span class="kkey">In preparazione</span> → <span class="kkey">Pronto</span>.</li>
+        <li>Dallo staff premi <span class="kkey">Chiudi al pagamento</span> — il telefono si disattiva e il gestionale si aggiorna.</li>
+      </ol>
+      <p style="margin-top:8px;font-size:12px;color:var(--muted)">Oppure usa <b>Guarda il giro automatico</b> per vederlo da solo.</p>
+    </div>
+  </details>
+</div>
+
+<!-- ========== MOBILE TABS ========== -->
+<div class="mobile-tabs">
+  <button class="mob-tab active" onclick="setMobTab(0,this)">Telefono</button>
+  <button class="mob-tab" onclick="setMobTab(1,this)">Staff</button>
+  <button class="mob-tab" onclick="setMobTab(2,this)">Cucina</button>
+  <button class="mob-tab" onclick="setMobTab(3,this)">Gestionale</button>
+</div>
+
+<!-- ========== STAGE ========== -->
+<div class="stage">
+
+  <!-- ===== COL 1: TELEFONO CLIENTE ===== -->
+  <div class="col-phone tab-active" id="colPhone">
+    <div class="panel-label">
+      <span class="dot lilla"></span>
+      Telefono cliente
+    </div>
+    <div class="phone-frame">
+      <div class="phone-notch"><div class="phone-cam"></div></div>
+      <div class="phone-screen">
+
+        <!-- VIEW: QR scan -->
+        <div class="phone-view active" id="viewQr">
+          <div class="qr-screen">
+            <div class="qr-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
+                <rect x="5" y="5" width="3" height="3"/><rect x="16" y="5" width="3" height="3"/><rect x="5" y="16" width="3" height="3"/>
+                <path d="M14 14h3v3"/><path d="M17 17h4"/><path d="M17 21v-4"/>
+              </svg>
+            </div>
+            <div class="qr-resto-name">Trattoria da Marco</div>
+            <div class="qr-table-badge">Tavolo 3</div>
+            <div class="qr-hint">Scansiona questo QR con il tuo telefono per ordinare direttamente al tavolo</div>
+            <button class="btn-scan" id="btnScan" onclick="onScan()">
+              Scansiona il QR &nbsp;📲
+            </button>
+          </div>
+        </div>
+
+        <!-- VIEW: Attesa approvazione -->
+        <div class="phone-view" id="viewWaiting">
+          <div class="waiting-screen">
+            <div class="pulse-ring">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 20v-1a6 6 0 0 1 12 0v1"/></svg>
+            </div>
+            <div class="waiting-title">In attesa dello staff<span class="dots-anim"></span></div>
+            <div class="waiting-sub">Il personale aprirà il menu tra un momento. Resta su questa pagina.</div>
+          </div>
+        </div>
+
+        <!-- VIEW: Menu -->
+        <div class="phone-view" id="viewMenu">
+          <div class="menu-screen">
+            <div class="menu-header">
+              <div class="menu-resto">Trattoria da Marco</div>
+              <div class="menu-table-tag">Tavolo 3 · Scegli cosa vuoi</div>
+            </div>
+            <div class="menu-cats" id="menuCats"></div>
+            <div class="menu-items" id="menuItems"></div>
+            <div class="cart-bar">
+              <div class="cart-bar-info">
+                <span class="cart-bar-count" id="cartCount">0 piatti</span>
+                <span class="cart-bar-total" id="cartTotal">€ 0,00</span>
+              </div>
+              <button class="btn-send" id="btnSend" disabled onclick="onSendOrder()">Invia ordine</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW: Ordine inviato -->
+        <div class="phone-view" id="viewSent">
+          <div class="sent-screen">
+            <div class="check-circle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <div class="sent-title">Ordine ricevuto!</div>
+            <div class="sent-sub">La cucina ha preso in carico il tuo ordine. Ti avvertiamo quando è pronto.</div>
+            <div class="sent-order-preview" id="sentPreview"></div>
+          </div>
+        </div>
+
+        <!-- VIEW: Tavolo chiuso -->
+        <div class="phone-view" id="viewClosed">
+          <div class="closed-screen">
+            <div class="closed-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <div class="closed-title">Sessione chiusa</div>
+            <div class="closed-sub">Il tavolo è stato saldato. Grazie per aver cenato da noi!</div>
+          </div>
+        </div>
+
+      </div><!-- /phone-screen -->
+      <div class="phone-home-bar"></div>
+    </div><!-- /phone-frame -->
+  </div>
+
+  <!-- ===== COL 2: STAFF PANEL ===== -->
+  <div class="staff-panel" id="staffPanel">
+    <div class="panel-label" style="padding:14px 15px 0;margin-bottom:0">
+      <span class="dot green"></span>
+      Console staff
+    </div>
+    <div class="staff-header">
+      <h2>Sala in diretta</h2>
+      <span class="status-pill">Attivo</span>
+    </div>
+    <div class="staff-body">
+
+      <!-- Request card (hidden until scan) -->
+      <div class="request-card" id="requestCard">
+        <div class="req-header">
+          <div class="req-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3H19a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><rect x="9" y="1" width="6" height="4" rx="1"/></svg>
+          </div>
+          <div class="req-info">
+            <h3>Tavolo 3 · Richiesta</h3>
+            <p>Un cliente vuole ordinare</p>
+          </div>
+          <span class="req-tag">Ora</span>
+        </div>
+        <div class="req-actions">
+          <button class="btn-approve" id="btnApprove" onclick="onApprove()">Approva</button>
+          <button class="btn-reject" onclick="onReject()">Rifiuta</button>
+        </div>
+      </div>
+
+      <!-- Tables grid -->
+      <div class="tables-label">Tavoli</div>
+      <div class="tables-grid" id="tablesGrid"></div>
+
+      <!-- Orders in staff -->
+      <div class="staff-orders-section">
+        <div class="staff-orders-label">Ordini attivi</div>
+        <div id="staffOrdersList"><div class="empty-state">Nessun ordine ancora</div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== COL 3: KDS CUCINA ===== -->
+  <div class="kds-panel" id="kdsPanel">
+    <div class="panel-label" style="padding:14px 15px 0;margin-bottom:0">
+      <span class="dot orange"></span>
+      Cucina — KDS
+    </div>
+    <div class="kds-header">
+      <h2>Comande in arrivo</h2>
+      <div class="kds-live"><div class="kds-live-dot"></div> Live</div>
+    </div>
+    <div class="kds-body" id="kdsBody">
+      <div class="kds-empty">
+        Nessuna comanda aperta.<br>Le nuove comande appaiono qui in tempo reale.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== COL 4: MINI GESTIONALE ===== -->
+  <div class="gestionale-panel" id="gestiPanel">
+    <div class="panel-label" style="padding:13px 14px 0;margin-bottom:0">
+      <span class="dot rosa"></span>
+      Incassi oggi
+    </div>
+    <div class="gest-header">
+      <h2>Mini gestionale</h2>
+      <p>Si aggiorna a ogni tavolo chiuso</p>
+    </div>
+    <div class="gest-body">
+      <div class="gest-kpi" id="gestiTotal">
+        <div class="gest-kpi-val">€ 0,00</div>
+        <div class="gest-kpi-label">Incasso totale</div>
+      </div>
+      <div class="gest-row">
+        <div class="gest-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20h5v-2a3 3 0 0 0-5.356-1.857"/><path d="M9 20H4v-2a3 3 0 0 1 5.356-1.857"/><circle cx="12" cy="7" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg></div>
+        <div class="gest-row-info">
+          <div class="gest-row-label">Tavoli chiusi</div>
+          <div class="gest-row-val" id="gestiTavoli">0</div>
+        </div>
+      </div>
+      <div class="gest-row">
+        <div class="gest-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+        <div class="gest-row-info">
+          <div class="gest-row-label">Ticket medio</div>
+          <div class="gest-row-val" id="gestiTicket">—</div>
+        </div>
+      </div>
+      <div class="gest-section-label">Piatti più ordinati</div>
+      <div id="gestiDishes">
+        <div style="font-size:12px;color:var(--muted);padding:4px 0">Nessun dato ancora</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /stage -->
+
+<script>
+/* ============================================================
+   STATO DEMO — tutto in memoria, zero backend
+   ============================================================ */
+// cook:true → carne rossa: mostra la scelta di cottura (il pollo si serve sempre ben cotto)
+const MENU = [
+  { id:'m1', cat:'Antipasti', name:'Tagliere toscano',        price:12 },
+  { id:'m2', cat:'Antipasti', name:'Crostini misti',          price:8  },
+  { id:'m3', cat:'Primi',     name:'Pici cacio e pepe',       price:11 },
+  { id:'m4', cat:'Primi',     name:'Ravioli ricotta e spinaci',price:12 },
+  { id:'m5', cat:'Secondi',   name:'Tagliata di manzo',       price:18, cook:true },
+  { id:'m10',cat:'Secondi',   name:'Bistecca alla fiorentina', price:26, cook:true },
+  { id:'m6', cat:'Secondi',   name:'Pollo alla griglia',      price:14 },
+  { id:'m7', cat:'Dolci',     name:'Cantucci e vin santo',    price:6  },
+  { id:'m8', cat:'Bevande',   name:'Acqua naturale',          price:2  },
+  { id:'m9', cat:'Bevande',   name:'Calice di Chianti',       price:5  },
+];
+
+// opzioni di cottura per le carni rosse
+const COOK_OPTIONS = ['Al sangue','Media','Ben cotta'];
+const COOK_DEFAULT = 'Media';
+
+const TABLES = [
+  { id:1, name:'Tavolo 1', state:'open' },
+  { id:2, name:'Tavolo 2', state:'closed' },
+  { id:3, name:'Tavolo 3', state:'closed' },
+  { id:4, name:'Tavolo 4', state:'open' },
+  { id:5, name:'Tavolo 5', state:'closed' },
+  { id:6, name:'Tavolo 6', state:'closed' },
+  { id:7, name:'Tavolo 7', state:'closed' },
+  { id:8, name:'Tavolo 8', state:'closed' },
+];
+
+// Ordini preesistenti (Tavolo 1 e 4 già aperti)
+const ORDERS = [
+  { id:'ord-pre-1', tableId:1, tableName:'Tavolo 1', status:'preparing', items:[{name:'Tagliata di manzo',qty:2,price:18,cook:'Al sangue'},{name:'Calice di Chianti',qty:2,price:5}], time:'20:14' },
+  { id:'ord-pre-2', tableId:4, tableName:'Tavolo 4', status:'ready',     items:[{name:'Pici cacio e pepe',qty:1,price:11},{name:'Ravioli ricotta e spinaci',qty:1,price:12}], time:'20:09' },
+];
+
+const LSKEY='boosted-demo-ordiniqr-v1';
+function loadState(){try{var s=localStorage.getItem(LSKEY);return s?JSON.parse(s):null;}catch(e){return null;}}
+function persistState(){try{localStorage.setItem(LSKEY,JSON.stringify({orders:state.orders,tables:state.tables,sales:state.sales,nextOrderId:state.nextOrderId}));}catch(e){}}
+var _saved = loadState();
+let state = {
+  phase: 'idle',     // idle | waiting | menu | sent | closed
+  cart: {},          // menuId -> qty
+  cook: {},          // menuId -> cottura scelta (solo carni rosse)
+  currentCat: 'Tutti',
+  orders: (_saved&&_saved.orders) ? _saved.orders : [...ORDERS],
+  tables: (_saved&&_saved.tables) ? _saved.tables : TABLES.map(t=>({...t})),
+  sales: (_saved&&_saved.sales) ? _saved.sales : { total:0, count:0, dishes:{} },
+  nextOrderId: (_saved&&_saved.nextOrderId) ? _saved.nextOrderId : 100,
+};
+
+/* ---- helpers ---- */
+function fmt(n){ return '€ ' + n.toFixed(2).replace('.',','); }
+function timeNow(){
+  const d=new Date(); return d.getHours()+':'+(d.getMinutes()<10?'0':'')+d.getMinutes();
+}
+
+/* ---- phone view switcher ---- */
+function showView(id){
+  ['viewQr','viewWaiting','viewMenu','viewSent','viewClosed'].forEach(v=>{
+    document.getElementById(v).classList.toggle('active', v===id);
+  });
+}
+
+/* ============================================================
+   RENDER MENU
+   ============================================================ */
+function renderMenu(){
+  const cats = ['Tutti', ...new Set(MENU.map(m=>m.cat))];
+  const catsEl = document.getElementById('menuCats');
+  catsEl.innerHTML = cats.map(c=>`
+    <button class="cat-tab${c===state.currentCat?' active':''}"
+      onclick="setCat('${c}')">${c}</button>
+  `).join('');
+
+  const items = state.currentCat==='Tutti' ? MENU : MENU.filter(m=>m.cat===state.currentCat);
+  const itemsEl = document.getElementById('menuItems');
+  itemsEl.innerHTML = items.map(m=>{
+    const qty = state.cart[m.id]||0;
+    return `
+    <div class="menu-item">
+      <div class="menu-item-info">
+        <div class="menu-item-name">${m.name}</div>
+        <div class="menu-item-cat">${m.cat}</div>
+        <div class="menu-item-price">${fmt(m.price)}</div>
+      </div>
+      <div class="qty-ctrl">
+        <button class="qty-btn" onclick="changeQty('${m.id}',-1)">−</button>
+        <span class="qty-num">${qty}</span>
+        <button class="qty-btn" onclick="changeQty('${m.id}',+1)">+</button>
+      </div>
+      ${(m.cook && qty>0) ? `
+      <div class="cook-row">
+        <span class="cook-label">🔥 Cottura</span>
+        <select class="cook-select" onchange="onCookChange('${m.id}',this.value)">
+          ${COOK_OPTIONS.map(o=>`<option${(state.cook[m.id]||COOK_DEFAULT)===o?' selected':''}>${o}</option>`).join('')}
+        </select>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+
+  updateCartBar();
+}
+
+function setCat(cat){
+  state.currentCat = cat;
+  renderMenu();
+}
+
+function changeQty(id, delta){
+  const cur = state.cart[id]||0;
+  const nw = Math.max(0, cur+delta);
+  const m = MENU.find(x=>x.id===id);
+  if(nw===0){
+    delete state.cart[id];
+    delete state.cook[id];
+  } else {
+    state.cart[id]=nw;
+    if(m && m.cook && !state.cook[id]) state.cook[id]=COOK_DEFAULT;
+  }
+  renderMenu();
+}
+
+function onCookChange(id, value){
+  state.cook[id]=value;
+}
+
+function updateCartBar(){
+  let count=0, total=0;
+  Object.entries(state.cart).forEach(([id,qty])=>{
+    const m=MENU.find(x=>x.id===id);
+    if(m){ count+=qty; total+=qty*m.price; }
+  });
+  document.getElementById('cartCount').textContent = count===0?'0 piatti': count===1?'1 piatto':`${count} piatti`;
+  document.getElementById('cartTotal').textContent = fmt(total);
+  document.getElementById('btnSend').disabled = count===0;
+}
+
+/* ============================================================
+   RENDER STAFF
+   ============================================================ */
+function renderTables(){
+  const grid = document.getElementById('tablesGrid');
+  grid.innerHTML = state.tables.map(t=>{
+    const cls = t.state==='open'?'open-state': t.state==='requested'?'requested-state':'';
+    const stateLabel = t.state==='open'?'Aperto': t.state==='requested'?'In attesa':'Chiuso';
+    const closeBtn = t.state==='open'
+      ? `<div class="table-card-actions"><button class="btn-close-table"${t.id===3?' id="btnCloseTable"':''} onclick="onCloseTable(${t.id})">Chiudi al pagamento</button></div>`
+      : '';
+    return `
+    <div class="table-card ${cls}" id="tcard-${t.id}">
+      <div class="table-card-name">${t.name}</div>
+      <div class="table-card-state">${stateLabel}</div>
+      ${closeBtn}
+    </div>`;
+  }).join('');
+}
+
+function renderStaffOrders(){
+  const el = document.getElementById('staffOrdersList');
+  const active = state.orders.filter(o=>o.status!=='served');
+  if(!active.length){ el.innerHTML='<div class="empty-state">Nessun ordine attivo</div>'; return; }
+  el.innerHTML = active.map(o=>{
+    const statusMap={ new:'Nuovo', preparing:'In prep.', ready:'Pronto', served:'Servito' };
+    const items = o.items.map(i=>`${i.qty}× ${i.name}${i.cook?` (${i.cook})`:''}`).join(', ');
+    return `
+    <div class="staff-order-row">
+      <div class="staff-order-table">${o.tableName}</div>
+      <div class="staff-order-items">${items}</div>
+      <div class="staff-order-status ${o.status}">${statusMap[o.status]||o.status}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ============================================================
+   RENDER KDS
+   ============================================================ */
+function renderKds(){
+  const el = document.getElementById('kdsBody');
+  const active = state.orders.filter(o=>o.status!=='served');
+  if(!active.length){
+    el.innerHTML='<div class="kds-empty">Nessuna comanda aperta.<br>Le nuove comande appaiono qui in tempo reale.</div>';
+    return;
+  }
+  const statusLabel={ new:'Nuovo', preparing:'In preparazione', ready:'Pronto' };
+  el.innerHTML = active.map(o=>`
+    <div class="kds-card ${o.status}" id="kds-${o.id}">
+      <div class="kds-card-header">
+        <span class="kds-table">${o.tableName}</span>
+        <span class="kds-time">${o.time}</span>
+        <span class="kds-status-badge">${statusLabel[o.status]||o.status}</span>
+      </div>
+      <div class="kds-items">
+        ${o.items.map(i=>`<div class="kds-item"><span class="kds-item-qty">${i.qty}×</span><span>${i.name}</span>${i.cook?`<span class="kds-cook">🔥 ${i.cook}</span>`:''}</div>`).join('')}
+      </div>
+      <div class="kds-actions">
+        ${o.status==='new'?`<button class="btn-kds advance" onclick="advanceOrder('${o.id}')">In preparazione</button>`:''}
+        ${o.status==='preparing'?`<button class="btn-kds complete" onclick="completeOrder('${o.id}')">Pronto</button>`:''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function advanceOrder(id){
+  const o = state.orders.find(x=>x.id===id);
+  if(o && o.status==='new'){ o.status='preparing'; renderAll(); }
+}
+function completeOrder(id){
+  const o = state.orders.find(x=>x.id===id);
+  if(o && o.status==='preparing'){ o.status='ready'; renderAll(); }
+}
+
+/* ============================================================
+   GESTIONALE
+   ============================================================ */
+function renderGestionale(){
+  const { total, count, dishes } = state.sales;
+  document.getElementById('gestiTotal').innerHTML = `
+    <div class="gest-kpi-val">${fmt(total)}</div>
+    <div class="gest-kpi-label">Incasso totale</div>
+  `;
+  document.getElementById('gestiTavoli').textContent = count;
+  document.getElementById('gestiTicket').textContent = count>0 ? fmt(total/count) : '—';
+
+  const sorted = Object.entries(dishes).sort((a,b)=>b[1].qty-a[1].qty).slice(0,5);
+  if(!sorted.length){
+    document.getElementById('gestiDishes').innerHTML='<div style="font-size:12px;color:var(--muted);padding:4px 0">Nessun dato ancora</div>';
+    return;
+  }
+  document.getElementById('gestiDishes').innerHTML = sorted.map(([name,d])=>`
+    <div class="gest-dish">
+      <span class="gest-dish-name">${name}</span>
+      <span class="gest-dish-qty">${d.qty}×</span>
+    </div>
+  `).join('');
+  document.getElementById('gestiTotal').classList.add('flash-update');
+  setTimeout(()=>document.getElementById('gestiTotal').classList.remove('flash-update'),600);
+}
+
+function updateSales(items){
+  items.forEach(i=>{
+    state.sales.total += i.qty * i.price;
+    if(!state.sales.dishes[i.name]) state.sales.dishes[i.name]={qty:0};
+    state.sales.dishes[i.name].qty += i.qty;
+  });
+  state.sales.count++;
+  renderGestionale();
+}
+
+/* ============================================================
+   RENDER ALL
+   ============================================================ */
+function renderAll(){
+  renderMenu();
+  renderTables();
+  renderStaffOrders();
+  renderKds();
+  renderGestionale();
+}
+
+/* ============================================================
+   FLUSSO PRINCIPALE — interazione utente
+   ============================================================ */
+function onScan(){
+  state.phase = 'waiting';
+  const t = state.tables.find(x=>x.id===3);
+  t.state = 'requested';
+  showView('viewWaiting');
+  renderTables();
+  // mostra request card allo staff
+  const rc = document.getElementById('requestCard');
+  rc.classList.add('show');
+  rc.classList.add('pulse-highlight');
+  setTimeout(()=>rc.classList.remove('pulse-highlight'),2000);
+}
+
+function onApprove(){
+  const t = state.tables.find(x=>x.id===3);
+  t.state = 'open';
+  document.getElementById('requestCard').classList.remove('show');
+  state.cart = {};
+  state.currentCat = 'Tutti';
+  showView('viewMenu');
+  renderMenu();
+  renderTables();
+}
+
+function onReject(){
+  const t = state.tables.find(x=>x.id===3);
+  t.state = 'closed';
+  document.getElementById('requestCard').classList.remove('show');
+  showView('viewQr');
+  renderTables();
+}
+
+function onSendOrder(){
+  if(Object.keys(state.cart).length===0) return;
+  const items = Object.entries(state.cart).map(([id,qty])=>{
+    const m = MENU.find(x=>x.id===id);
+    const it = { name:m.name, qty, price:m.price };
+    if(m.cook) it.cook = state.cook[id]||COOK_DEFAULT;
+    return it;
+  });
+  const order = {
+    id:'ord-'+state.nextOrderId++,
+    tableId:3, tableName:'Tavolo 3', status:'new',
+    items, time: timeNow(),
+  };
+  state.orders.push(order);
+
+  // preview ordine inviato
+  document.getElementById('sentPreview').innerHTML =
+    items.map(i=>`${i.qty}× ${i.name}${i.cook?` <span style="color:var(--rosa)">· ${i.cook}</span>`:''} &nbsp;·&nbsp; ${fmt(i.qty*i.price)}`).join('<br>');
+
+  showView('viewSent');
+  renderStaffOrders();
+  renderKds();
+  persistState();
+}
+
+function onCloseTable(tableId){
+  tableId = tableId || 3;            // il tour e il flusso QR usano il Tavolo 3
+  const tOrders = state.orders.filter(o=>o.tableId===tableId && o.status!=='served');
+  const allItems = [];
+  tOrders.forEach(o=>{ o.status='served'; allItems.push(...o.items); });
+  const t = state.tables.find(x=>x.id===tableId);
+  if(t) t.state = 'closed';
+  if(tableId===3) showView('viewClosed');   // il telefono mostra "chiuso" solo per il tavolo del flusso
+  renderTables();
+  renderStaffOrders();
+  renderKds();
+  if(allItems.length) updateSales(allItems);
+  persistState();
+}
+
+/* ============================================================
+   RESET
+   ============================================================ */
+function resetDemo(){
+  try{localStorage.removeItem(LSKEY);}catch(e){}
+  state.phase='idle';
+  state.cart={};
+  state.cook={};
+  state.currentCat='Tutti';
+  state.orders = [...ORDERS.map(o=>({...o}))];
+  state.tables = TABLES.map(t=>({...t}));
+  state.sales = { total:0, count:0, dishes:{} };
+  state.nextOrderId = 100;
+  document.getElementById('requestCard').classList.remove('show');
+  showView('viewQr');
+  renderAll();
+}
+
+/* ============================================================
+   TOUR AUTOMATICO
+   ============================================================ */
+let tourTimer = null;
+let tourActive = false;
+
+const TOUR_STEPS = [
+  {
+    label:'Passo 1 di 7',
+    desc:'Il cliente scansiona il QR del tavolo',
+    fn: ()=>{
+      resetDemo();
+      highlight('btnScan');
+    }
+  },
+  {
+    label:'Passo 2 di 7',
+    desc:'La richiesta arriva allo staff in tempo reale',
+    fn: ()=>{
+      onScan();
+      scrollToPanel('staffPanel');
+      highlight('requestCard');
+    }
+  },
+  {
+    label:'Passo 3 di 7',
+    desc:'Lo staff approva — il menu si apre sul telefono',
+    fn: ()=>{
+      onApprove();
+      highlight('btnApprove');
+      setTimeout(()=>{ highlight('colPhone'); }, 400);
+    }
+  },
+  {
+    label:'Passo 4 di 7',
+    desc:'Il cliente sceglie i piatti e li aggiunge al carrello',
+    fn: ()=>{
+      changeQty('m3',1); changeQty('m5',1); changeQty('m9',2);
+      renderMenu();
+      highlight('menuItems');
+    }
+  },
+  {
+    label:'Passo 5 di 7',
+    desc:'L\'ordine viene inviato e arriva in cucina',
+    fn: ()=>{
+      onSendOrder();
+      scrollToPanel('kdsPanel');
+      setTimeout(()=>highlight('kdsBody'),300);
+    }
+  },
+  {
+    label:'Passo 6 di 7',
+    desc:'La cucina aggiorna lo stato: In preparazione → Pronto',
+    fn: ()=>{
+      const lastOrder = state.orders[state.orders.length-1];
+      if(lastOrder){ advanceOrder(lastOrder.id); }
+      setTimeout(()=>{
+        if(lastOrder){ completeOrder(lastOrder.id); }
+      },1200);
+      highlight('kdsBody');
+    }
+  },
+  {
+    label:'Passo 7 di 7',
+    desc:'Lo staff chiude il tavolo — il gestionale si aggiorna',
+    fn: ()=>{
+      onCloseTable();
+      scrollToPanel('gestiPanel');
+      highlight('gestiPanel');
+    }
+  },
+];
+
+let tourStep = 0;
+
+function toggleTour(){
+  if(tourActive) stopTour(); else startTour();
+}
+
+function startTour(){
+  tourActive=true;
+  tourStep=0;
+  document.getElementById('btnTour').classList.add('active');
+  document.getElementById('btnTour').innerHTML=`
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="3" y="3" width="4" height="10"/><rect x="9" y="3" width="4" height="10"/></svg>
+    Stop tour
+  `;
+  document.getElementById('tourBanner').classList.add('show');
+  runTourStep();
+}
+
+function stopTour(){
+  tourActive=false;
+  clearTimeout(tourTimer);
+  document.getElementById('btnTour').classList.remove('active');
+  document.getElementById('btnTour').innerHTML=`
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polygon points="5,3 13,8 5,13"/></svg>
+    Guarda il giro automatico
+  `;
+  document.getElementById('tourBanner').classList.remove('show');
+  clearHighlights();
+}
+
+function runTourStep(){
+  if(!tourActive) return;
+  if(tourStep>=TOUR_STEPS.length){ stopTour(); return; }
+  const step = TOUR_STEPS[tourStep];
+  document.getElementById('tourStepLabel').textContent = step.label;
+  document.getElementById('tourStepDesc').textContent  = step.desc;
+  clearHighlights();
+  step.fn();
+  tourStep++;
+  tourTimer = setTimeout(runTourStep, 2600);
+}
+
+function highlight(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.classList.add('tour-ring');
+}
+
+function clearHighlights(){
+  document.querySelectorAll('.tour-ring').forEach(el=>el.classList.remove('tour-ring'));
+}
+
+function scrollToPanel(id){
+  const el = document.getElementById(id);
+  if(el) el.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+/* ============================================================
+   MOBILE TABS
+   ============================================================ */
+const MOB_PANELS = ['colPhone','staffPanel','kdsPanel','gestiPanel'];
+function setMobTab(idx, btn){
+  MOB_PANELS.forEach((id,i)=>{
+    document.getElementById(id).classList.toggle('tab-active', i===idx);
+  });
+  document.querySelectorAll('.mob-tab').forEach((b,i)=>{
+    b.classList.toggle('active', i===idx);
+  });
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+renderTables();
+renderStaffOrders();
+renderKds();
+renderGestionale();
+// menu pronto ma nascosto (view non attiva)
+renderMenu();
+</script>
+</body>
+</html>

@@ -116,6 +116,7 @@
   .totrow{display:flex;justify-content:space-between;font-size:12.5px;color:var(--grigio);padding:3px 0}
   .pactions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
   .lnk{font-size:11px;font-weight:700;color:var(--lilla);border:1px solid var(--line);border-radius:7px;padding:3px 8px;background:var(--surface-2)}.lnk:hover{border-color:var(--lilla)}.lnk.bad{color:var(--rosso);border-color:rgba(255,139,139,.3)}
+  .inp{background:var(--nero);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--bianco);font-size:14px}.inp:focus{outline:none;border-color:var(--lilla)}
   .badge-soft{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:2px 6px;border-radius:5px;background:var(--verde-soft);color:var(--verde)}
   .seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:10px;overflow:hidden;background:var(--surface-2)}
   .seg button{font-size:12px;font-weight:700;padding:7px 12px;color:var(--grigio)}.seg button.on{background:var(--grad);color:#150f22}
@@ -528,7 +529,7 @@
           <div class="hint" style="margin-top:12px">Le recensioni ricevute sono una <b>stima</b> (~28% di chi riceve la richiesta), non dati reali. Nessun invio parte davvero.</div>
         </div>
         <div class="card" style="margin-top:14px">
-          <div class="sec-title" style="justify-content:space-between"><span>Recensioni recenti</span><a class="btn sm" href="demo-recensioni.html" target="_blank" rel="noopener">Pagina recensioni ↗</a></div>
+          <div class="sec-title"><span>Recensioni recenti</span></div>
           <div id="repReviews"></div>
         </div>
       </div>
@@ -671,7 +672,7 @@ function seed(){
   ];
   state.feedback=[
     {id:'f1',name:'Cliente di Sara',text:'Ho aspettato 10 minuti oltre l\'orario.',when:'oggi',handled:false},
-    {id:'f2',name:'Cliente walk-in',text:'Vorrei piu scelta di prodotti per capelli ricci.',when:'ieri',handled:false}
+    {id:'f2',name:'Cliente walk-in',text:'Vorrei più scelta di prodotti per capelli ricci.',when:'ieri',handled:false}
   ];
   state.rep={score:9.7,count:286,month:24};
   state.mkt={campaigns:[],feed:[{ic:'lilla',text:'Rubrica sincronizzata con le schede cliente',when:'oggi'}],reviews:{requested:0,received:0},emailsSent:0,waSent:0};
@@ -687,6 +688,12 @@ function seed(){
     ap('Giulia Neri',o2,'Colore',Math.min(CLOSE()-120,nowMin()+90),'confirmed','web',''),
     ap('Valentina Poli',o1,'Capelli',Math.min(CLOSE()-50,nowMin()+150),'pending','web','+39 348 222 1144')
   ];
+  // niente sovrapposizioni nel seed: per ogni operatore gli appuntamenti vanno in fila
+  for(const _o of state.operators){
+    const _l=state.appts.filter(a=>a.operatorId===_o.id).sort((a,b)=>minFM(a.start)-minFM(b.start));
+    let _free=0;
+    for(const _a of _l){ if(minFM(_a.start)<_free) _a.start=isoAt(0,_free); _free=minFM(_a.start)+_a.dur+5; }
+  }
   const w=svc('Capelli'); state.queue=[{id:uid('q'),clientName:'Marco (walk-in)',serviceIds:[w.id],addedAt:Date.now()-8*60000}];
   const ss=svc('Capelli'); state.sales=[{id:uid('sa'),clientName:'Sig. Bianchi',operatorId:o1,serviceIds:[ss.id],total:ss.price,tip:200,method:'contanti',source:'salone',at:isoAt(0,OPEN()+30),items:[{name:ss.name,price:ss.price}]}];
   // incassi storici (per gli intervalli 7/30 giorni · generati in modo deterministico)
@@ -868,7 +875,10 @@ function upsertClient(o){
   c={id:uid('cl'),nome:nm,cognome:cg,name:name,phone:(o.phone||'').trim(),email:(o.email||'').trim(),source:o.source||'web',createdAt:new Date().toISOString(),visits:0,lastVisit:null,last:null,spend:0,notes:'',pref:''};
   state.clients.push(c);return {client:c,isNew:true};
 }
-function mktLog(ic,text){if(!state.mkt)return;state.mkt.feed.unshift({ic:ic,text:text,when:'ora'});if(state.mkt.feed.length>14)state.mkt.feed.pop();}
+const STATUS_IT={pending:'da confermare',confirmed:'confermato',inchair:'in poltrona',done:'concluso',cancelled:'annullato',noshow:'no-show'};
+const SOURCE_IT={voice_ai:'voce AI',web:'online',manual:'reception',walkin:'walk-in',assistente:'assistente'};
+function _ago(at){const s=(Date.now()-at)/1000;if(s<90)return 'ora';if(s<3600)return Math.round(s/60)+' min fa';if(s<86400)return Math.round(s/3600)+' h fa';const d=Math.round(s/86400);return d===1?'ieri':d+' giorni fa';}
+function mktLog(ic,text){if(!state.mkt)return;state.mkt.feed.unshift({ic:ic,text:text,at:Date.now()});if(state.mkt.feed.length>14)state.mkt.feed.pop();}
 function confirmCliBooking(){
   cliCapture();
   const nome=(cliForm.nome||'').trim(),cognome=(cliForm.cognome||'').trim(),phone=(cliForm.phone||'').trim(),email=(cliForm.email||'').trim();
@@ -927,7 +937,7 @@ function renderProva(){
   const file=$('#pvFile'), refFile=$('#pvRefFile'), refPrev=$('#pvRefPrev');
   const pick=(id)=>{ const g=$('#'+id), on=g&&g.querySelector('.opchip.on'); return on?on.dataset.v:''; };
   const combo=()=>[pick('pv_cut'),pick('pv_style'),pick('pv_color')].filter(Boolean).join(' · ');
-  function updState(){ ['pv_cut','pv_style','pv_color'].forEach(id=>{ const s=$('#'+id+'_state'); if(s){ const v=pick(id); s.textContent=v||'—'; s.style.opacity=v?'1':'.6'; s.style.color=v?'var(--accent,#c9a24a)':''; } }); }
+  function updState(){ ['pv_cut','pv_style','pv_color'].forEach(id=>{ const s=$('#'+id+'_state'); if(s){ const v=pick(id); s.textContent=v||'—'; s.style.opacity=v?'1':'.6'; s.style.color=v?'var(--lilla)':''; } }); }
   function updSummary(){ const sm=$('#pvSummary'); if(!sm)return; if(mode==='ref'){ sm.textContent=refImg?'Proverai: il look della foto di riferimento':'Carica una foto di riferimento'; } else { const c=combo(); sm.textContent=c?('Proverai: '+c):'Scegli almeno taglio, piega o colore'; } }
   // chip a interruttore: riclicca per togliere → una sezione può restare vuota (non viene toccata)
   el.querySelectorAll('#pvCompose .pvchips').forEach(g=>g.addEventListener('click',e=>{ const b=e.target.closest('[data-v]'); if(!b)return; const wasOn=b.classList.contains('on'); g.querySelectorAll('.opchip').forEach(x=>x.classList.remove('on')); if(!wasOn)b.classList.add('on'); updState(); updSummary(); }));
@@ -935,11 +945,11 @@ function renderProva(){
   $('#pvTabs').addEventListener('click',e=>{ const b=e.target.closest('[data-tab]'); if(!b)return; mode=b.dataset.tab; $('#pvTabs').querySelectorAll('.opchip').forEach(x=>x.classList.toggle('on',x===b)); $('#pvCompose').style.display=mode==='compose'?'':'none'; $('#pvRefBox').style.display=mode==='ref'?'':'none'; updSummary(); });
   $('#pvPick').addEventListener('click',()=>file.click());
   file.addEventListener('change',async()=>{ const f=file.files[0]; if(!f)return; file.value=''; try{ selfie=await pvScaled(f,1024,0.82); const go=$('#pvGo'); go.disabled=false; go.style.opacity='1'; const sp=$('#pvSelfiePrev'); if(sp)sp.innerHTML='<img src="'+selfie+'" alt="il tuo selfie" style="max-width:120px;max-height:120px;border-radius:12px;border:1px solid rgba(255,255,255,.16)">'; $('#pvResult').innerHTML='<div class="hint">Selfie caricato ✓ — ora componi il look o copia da una foto.</div>'; }catch(_){ toast('Foto non leggibile, riprova.'); } });
-  function setRef(src){ refImg=src; if(refPrev)refPrev.innerHTML=src?'<img src="'+src+'" alt="riferimento" style="max-width:120px;max-height:120px;border-radius:12px;border:2px solid var(--accent,#c9a24a);vertical-align:middle"> <button class="btn" id="pvRefClr" style="margin-left:8px">Togli</button>':''; const clr=$('#pvRefClr'); if(clr)clr.addEventListener('click',()=>{ setRef(null); const box=$('#pvLooks'); if(box)box.querySelectorAll('.pvlook').forEach(x=>x.style.borderColor='transparent'); }); updSummary(); }
+  function setRef(src){ refImg=src; if(refPrev)refPrev.innerHTML=src?'<img src="'+src+'" alt="riferimento" style="max-width:120px;max-height:120px;border-radius:12px;border:2px solid var(--lilla);vertical-align:middle"> <button class="btn" id="pvRefClr" style="margin-left:8px">Togli</button>':''; const clr=$('#pvRefClr'); if(clr)clr.addEventListener('click',()=>{ setRef(null); const box=$('#pvLooks'); if(box)box.querySelectorAll('.pvlook').forEach(x=>x.style.borderColor='transparent'); }); updSummary(); }
   $('#pvRefPick').addEventListener('click',()=>refFile.click());
   refFile.addEventListener('change',async()=>{ const f=refFile.files[0]; if(!f)return; refFile.value=''; try{ setRef(await pvScaled(f,1024,0.82)); }catch(_){ toast('Foto non leggibile.'); } });
   // look pronti realistici (se generati con "Genera look parrucchiere")
-  if(window.BOOSTED_LOOKS && window.BOOSTED_LOOKS.length){ const box=$('#pvLooks'); if(box){ box.innerHTML='<div class="bklab" style="margin:14px 0 6px">Oppure scegli un look pronto</div><div style="display:flex;flex-wrap:wrap;gap:8px">'+window.BOOSTED_LOOKS.map((l,i)=>'<button class="pvlook" data-i="'+i+'" style="width:78px;border:2px solid transparent;border-radius:12px;overflow:hidden;padding:0;cursor:pointer;background:none"><img src="'+l.img+'" alt="'+esc(l.label)+'" style="width:100%;height:96px;object-fit:cover;display:block"><div style="font-size:10px;padding:3px 2px;opacity:.85;text-align:center">'+esc(l.label)+'</div></button>').join('')+'</div>'; box.addEventListener('click',e=>{ const b=e.target.closest('[data-i]'); if(!b)return; setRef(window.BOOSTED_LOOKS[+b.getAttribute('data-i')].img); box.querySelectorAll('.pvlook').forEach(x=>x.style.borderColor='transparent'); b.style.borderColor='var(--accent,#c9a24a)'; }); } }
+  if(window.BOOSTED_LOOKS && window.BOOSTED_LOOKS.length){ const box=$('#pvLooks'); if(box){ box.innerHTML='<div class="bklab" style="margin:14px 0 6px">Oppure scegli un look pronto</div><div style="display:flex;flex-wrap:wrap;gap:8px">'+window.BOOSTED_LOOKS.map((l,i)=>'<button class="pvlook" data-i="'+i+'" style="width:78px;border:2px solid transparent;border-radius:12px;overflow:hidden;padding:0;cursor:pointer;background:none"><img src="'+l.img+'" alt="'+esc(l.label)+'" style="width:100%;height:96px;object-fit:cover;display:block"><div style="font-size:10px;padding:3px 2px;opacity:.85;text-align:center">'+esc(l.label)+'</div></button>').join('')+'</div>'; box.addEventListener('click',e=>{ const b=e.target.closest('[data-i]'); if(!b)return; setRef(window.BOOSTED_LOOKS[+b.getAttribute('data-i')].img); box.querySelectorAll('.pvlook').forEach(x=>x.style.borderColor='transparent'); b.style.borderColor='var(--lilla)'; }); } }
   updState(); updSummary();
   $('#pvGo').addEventListener('click',async()=>{
     if(!selfie){ toast('Carica prima un selfie.'); return; }
@@ -957,7 +967,7 @@ function renderProva(){
         rz.innerHTML='<img src="'+esc(d.image)+'" alt="anteprima look" style="width:100%;max-width:320px;border-radius:14px;display:block"><div class="hint" style="margin-top:6px">Anteprima AI · '+esc(label)+'</div>';
       } else {
         const refThumb = useRef ? '<img src="'+esc(refImg)+'" alt="rif" style="position:absolute;right:8px;top:8px;width:34%;border-radius:10px;border:2px solid #fff;box-shadow:0 6px 14px rgba(0,0,0,.5)">' : '';
-        rz.innerHTML='<div style="position:relative;max-width:320px"><img src="'+esc(selfie)+'" style="width:100%;border-radius:14px;display:block">'+refThumb+'<div style="position:absolute;left:0;right:0;bottom:0;padding:12px;background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff;border-radius:0 0 14px 14px;font-weight:700;font-size:13px">'+esc(label)+'</div></div><div class="hint" style="margin-top:6px">Anteprima demo · con il credito attivo (file <b>fal-key.txt</b>) qui vedrai il look generato dall\'AI sui tuoi capelli'+(useRef?' (copiando la foto di riferimento)':'')+'.</div>';
+        rz.innerHTML='<div style="position:relative;max-width:320px"><img src="'+esc(selfie)+'" style="width:100%;border-radius:14px;display:block">'+refThumb+'<div style="position:absolute;left:0;right:0;bottom:0;padding:12px;background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff;border-radius:0 0 14px 14px;font-weight:700;font-size:13px">'+esc(label)+'</div></div><div class="hint" style="margin-top:6px">Anteprima demo · con l\'AI attiva qui vedrai il look generato sui tuoi capelli'+(useRef?' (copiando la foto di riferimento)':'')+'.</div>';
       }
     }catch(_){ rz.innerHTML='<div class="hint">Errore di rete, riprova.</div>'; }
   });
@@ -997,7 +1007,7 @@ function renderAssistente(){ roleStrip('roles-asst','🎙','Titolare','l\'assist
 function renderPoltrone(){
   roleStrip('roles-pol','💈','Operatori','chi è in poltrona e la coda walk-in','tablet di reception');
   const inchair=state.appts.filter(a=>a.status==='inchair');
-  $('#kpis-pol').innerHTML=kpi([[inchair.length,'In poltrona',true],[state.queue.length,'In coda'],[state.operators.length-inchair.length,'operatori liberi'],[state.appts.filter(a=>a.status==='confirmed'&&isOnDay(a.start,0)).length,'in arrivo oggi']]);
+  $('#kpis-pol').innerHTML=kpi([[inchair.length,'In poltrona',true],[state.queue.length,'In coda'],[Math.max(0,state.operators.length-inchair.length),'Operatori liberi'],[state.appts.filter(a=>a.status==='confirmed'&&isOnDay(a.start,0)).length,'In arrivo oggi']]);
   $('#chairsBox').innerHTML=state.operators.map(o=>{
     const cur=inchair.find(a=>a.operatorId===o.id);
     const next=state.appts.filter(a=>a.operatorId===o.id&&a.status==='confirmed'&&isOnDay(a.start,0)).sort((a,b)=>new Date(a.start)-new Date(b.start))[0];
@@ -1036,11 +1046,26 @@ function billTotal(a){return Math.max(0,a.price+(a.extra||0)+(a.tip||0)-(a.disco
 // Scontrino immediato: appena concludi in Poltrone esce il conto da battere in cassa (contanti/carta).
 function openBillModal(id){
   const a=state.appts.find(x=>x.id===id); if(!a||a.paid) return;
-  const svcRows=a.serviceIds.map(sid=>{const sv=svcById(sid);return `<div class="cline"><span class="cl-n">${esc(sv?sv.name:'?')}</span><span style="font-weight:700">${euro(sv?sv.price:0)}</span></div>`;}).join('');
+  const svcRows=a.serviceIds.map(sid=>{const sv=svcById(sid);return `<div class="cline"><span class="cl-n">${esc(sv?sv.name:'?')}</span><span style="font-weight:700">${euro(sv?sv.price:0)}</span></div>`;}).join('')
+    +(a.products||[]).map(pr=>`<div class="cline"><span class="cl-n">🧴 ${esc(pr.name)}</span><span style="font-weight:700">${euro(pr.price)}</span></div>`).join('');
+  const full=a.price+(a.extra||0)+(a.tip||0);           // listino (con eventuale mancia)
+  const disc=a.discount||0, pay=billTotal(a);
+  const totBlock = disc>0
+    ? `<div class="cline" style="color:var(--grigio)"><span class="cl-n">Totale listino</span><span>${euro(full)}</span></div>
+       <div class="cline" style="color:var(--verde)"><span class="cl-n">Sconto</span><span style="font-weight:700">−${euro(disc)}</span></div>
+       <div class="order-total" style="margin-top:4px"><span>Da incassare</span><span>${euro(pay)}</span></div>`
+    : `<div class="order-total" style="margin-top:8px"><span>Totale</span><span>${euro(pay)}</span></div>`;
   openModal(`<h3>🧾 Scontrino · ${esc(a.clientName)}</h3><div class="psub">${esc(svcNames(a.serviceIds))} · ${esc(opName(a.operatorId))}</div>
     ${svcRows}
-    <div class="order-total" style="margin-top:8px"><span>Totale</span><span>${euro(billTotal(a))}</span></div>
-    <div class="pactions" style="margin-top:14px;justify-content:flex-end"><button class="btn sm" data-mclose>Chiudi</button><button class="btn primary" data-incassa="${a.id}">✓ Incassato</button></div>`);
+    ${totBlock}
+    <div style="margin-top:8px;text-align:right"><button class="lnk" data-billdisc="${a.id}" style="font-size:12px">✎ ${disc>0?'Modifica lo sconto':'Fai uno sconto (modifica incasso)'}</button></div>
+    <div id="bmDiscForm" style="display:none;margin-top:8px">
+      <label style="display:block;font-size:12px;color:var(--grigio);margin-bottom:4px">Quanto incassi davvero (fino a ${euro(full)})</label>
+      <div style="display:flex;gap:8px"><input id="bmVal" class="inp" inputmode="decimal" autocomplete="off" value="${(pay/100).toFixed(2).replace('.',',')}" style="flex:1;min-width:0">
+      <button class="btn sm primary" data-billdiscgo="${a.id}">Applica</button></div>
+      <div style="font-size:11.5px;color:var(--grigio);margin-top:5px">Lo sconto resta tracciato: negli incassi conta ciò che entra davvero.</div>
+    </div>
+    <div class="pactions" style="margin-top:14px;justify-content:flex-end"><button class="btn sm" data-mclose>Chiudi</button><button class="btn primary" data-incassa="${a.id}|contanti">💵 Contanti</button><button class="btn primary" data-incassa="${a.id}|carta">💳 Carta</button></div>`);
 }
 function renderBillPanel(){
   const wrap=$('#billPanelWrap');const a=state.appts.find(x=>x.id===selBill&&x.status==='done'&&!x.paid);
@@ -1091,7 +1116,7 @@ function renderClienti(){
   roleStrip('roles-cl2','🧑','Reception','schede cliente: storico, note, fidelizzazione','desktop');
   const list=state.clients.filter(c=>!cliSearch||c.name.toLowerCase().includes(cliSearch)).sort((a,b)=>b.spend-a.spend);
   $('#clientsBody').innerHTML=list.length?list.map(c=>{
-    const ini=c.name.split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase();
+    const ini=c.name.split(' ').filter(Boolean).map(x=>x[0]).slice(0,2).join('').toUpperCase();
     return `<div class="ccard"><div class="ch"><div class="av">${esc(ini)}</div><div class="nm"><b>${esc(c.name)}</b><div class="ph">${c.phone?esc(c.phone):'—'}${c.email?' · '+esc(c.email):''}</div></div></div>
       <div class="crow"><span>Visite</span><b>${c.visits}</b></div>
       <div class="crow"><span>Punti fedeltà</span><b style="color:var(--giallo)">${c.visits*10} pt</b></div>
@@ -1132,7 +1157,7 @@ function renderGestOperatori(){
     const appts=state.appts.filter(a=>a.operatorId===o.id&&a.status!=='cancelled').sort((a,b)=>new Date(a.start)-new Date(b.start));
     const todayN=appts.filter(a=>isOnDay(a.start,0)).length;
     const can=state.services.filter(s=>!s.ops.length||s.ops.includes(o.id)).length;
-    const rows=appts.length?appts.map(a=>`<div class="gop-row"><span class="gop-t">${t2s(minFM(a.start))}</span><span class="gop-n">${esc(a.clientName)} · <span style="color:var(--grigio)">${esc(svcNames(a.serviceIds))}</span></span><span class="tag ${scls(a.status)}">${esc(a.status)}</span></div>`).join(''):'<div class="empty" style="padding:10px">Nessun appuntamento in agenda.</div>';
+    const rows=appts.length?appts.map(a=>`<div class="gop-row"><span class="gop-t">${t2s(minFM(a.start))}</span><span class="gop-n">${esc(a.clientName)} · <span style="color:var(--grigio)">${esc(svcNames(a.serviceIds))}</span></span><span class="tag ${scls(a.status)}">${esc(STATUS_IT[a.status]||a.status)}</span></div>`).join(''):'<div class="empty" style="padding:10px">Nessun appuntamento in agenda.</div>';
     return `<div class="card" style="margin-bottom:12px"><div class="menu-actions" style="margin-bottom:10px"><div style="display:flex;align-items:center;gap:11px"><div style="width:38px;height:38px;border-radius:50%;background:${o.color};display:grid;place-items:center;color:#fff;font-weight:800;flex:none">${esc(o.name[0])}</div><div><b>${esc(o.name)}</b><div style="font-size:11.5px;color:var(--grigio)">${can} servizi · ${todayN} oggi · ${appts.length} in agenda</div></div></div><button class="btn sm" data-editop="${o.id}">${EDIT} Modifica</button></div><div class="gop-list">${rows}</div></div>`;
   }).join('')+`<button class="btn primary block" data-addop="1">＋ Aggiungi operatore</button>`;
 }
@@ -1167,7 +1192,7 @@ function renderReport(){
   const todayInc=todaySales.reduce((s,x)=>s+x.total+(x.tip||0),0)+todayPend.reduce((s,a)=>s+billTotal(a),0);
   $('#reportZ').innerHTML=`Incasso giornata <b>${euro(todayInc)}</b> · ${todaySales.length+todayPend.length} clienti · ${noshow} no-show. Premi per la chiusura fiscale (Z).`;
   const chan={};allS.forEach(s=>{const k=s.source==='voice_ai'?'voce':(s.source||'salone');chan[k]=(chan[k]||0)+s.total+(s.tip||0);});
-  const cl={salone:'💈 Salone',web:'🌐 Online',voce:'🎙 Voce AI',manual:'✍ Banco'};
+  const cl={salone:'💈 Salone',web:'🌐 Online',voce:'🎙 Voce AI',manual:'✍ Banco',walkin:'🚶 Walk-in'};
   $('#reportChan').innerHTML=Object.keys(chan).length?Object.entries(chan).map(([k,v])=>`<div class="chanrow"><span>${cl[k]||k}</span><b style="color:var(--lilla-chiaro)">${euro(v)}</b></div>`).join(''):'<div class="empty">—</div>';
 }
 
@@ -1202,7 +1227,7 @@ function renderMktCruscotto(){
   const c=mktCounts(), m=state.mkt, msgTot=(m.emailsSent||0)+(m.waSent||0);
   const kp=$('#kpis-mkt'); if(kp) kp.innerHTML=kpi([[c.tot,'Contatti',true],[c.mail,'Con email'],[c.wa,'Con WhatsApp'],[m.campaigns.length,'Campagne inviate']]);
   const mt=$('#mktMsgTot'); if(mt) mt.textContent=msgTot+' messaggi inviati in totale';
-  const f=$('#mktFeed'); if(f) f.innerHTML=m.feed.length?m.feed.map(x=>`<div class="feedline"><div class="fi ${esc(x.ic||'lilla')}">${x.ic==='gold'?'★':x.ic==='green'?'✓':'✦'}</div><div class="ft">${x.text}</div><div class="fw">${esc(x.when||'ora')}</div></div>`).join(''):'<div class="empty">Aggiungi un contatto, invia una campagna o chiedi una recensione: qui compaiono gli eventi.</div>';
+  const f=$('#mktFeed'); if(f) f.innerHTML=m.feed.length?m.feed.map(x=>`<div class="feedline"><div class="fi ${esc(x.ic||'lilla')}">${x.ic==='gold'?'★':x.ic==='green'?'✓':'✦'}</div><div class="ft">${x.text}</div><div class="fw">${esc(x.at?_ago(x.at):(x.when||'ora'))}</div></div>`).join(''):'<div class="empty">Aggiungi un contatto, invia una campagna o chiedi una recensione: qui compaiono gli eventi.</div>';
 }
 function renderMktContatti(){
   const c=mktCounts();
@@ -1247,7 +1272,7 @@ function renderMktAnteprima(){
   const email=`<div style="flex:1;min-width:300px"><div class="kicker" style="margin-bottom:8px">Email</div><div class="mail">`+
     `<div class="mail-chrome"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span style="margin-left:6px;font-size:11px;color:#9197a3;font-weight:600">Posta in arrivo</span></div>`+
     `<div class="mail-head"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><div class="mail-ava">${ini}</div><div style="flex:1;min-width:0"><b>${sender}</b> <span style="color:#9197a3">&lt;noreply@${esc(dom)}&gt;</span><div style="color:#9197a3;font-size:11px">a: ${esc(sample.email||'cliente@email.it')}</div></div><div style="color:#9197a3;font-size:11px">ora</div></div><div class="mail-kind">Marketing</div><div style="color:#13151a;font-weight:800;font-size:15px;margin-top:2px">${subj}</div></div>`+
-    `<div class="mail-body"><p style="margin:0 0 8px"><b>Ciao ${esc(name)},</b></p>${emailBody}<div class="mail-offer">🎁 -20% su colore + taglio · valido questa settimana</div><a class="mail-cta">Prenota il tuo appuntamento</a></div>`+
+    `<div class="mail-body">${emailBody}<a class="mail-cta">Prenota il tuo appuntamento</a></div>`+
     `<div class="mail-foot">Ricevi questa email da ${sender}. <a href="#">Disiscriviti con un click</a>.<br>${sender} · ${esc(dom)}</div>`+
     `</div></div>`;
   const wa=`<div style="flex:1;min-width:270px"><div class="kicker" style="margin-bottom:8px;color:#25D366">WhatsApp</div><div class="wa-phone">`+
@@ -1284,9 +1309,8 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#modal').classLi
 
 // ===================== DEMO CONVERSAZIONE AI (voce + chat) =====================
 let bvToken=0, bvAppt={};
-// ⬇️ VOCE DEL SALONE.
-// Ora è in ANTEPRIMA con la voce dell'assistente ristorante (già live) così la chiamata funziona subito.
-// Quando crei l'agente del salone (con 11labs/AGENT-CONFIG-barbiere.md): incolla qui il suo Agent ID e metti BV_SALON_AGENT_IS_PREVIEW=false.
+// ⬇️ VOCE DEL SALONE — Agent ID dell'assistente del salone (config in 11labs/AGENT-CONFIG-barbiere.md).
+// Se vuoi provare con una voce diversa metti qui il suo Agent ID; BV_SALON_AGENT_IS_PREVIEW=true mostra l'avviso "anteprima".
 const BV_SALON_AGENT='agent_0501kwybt7m7etps5myt8ngv3vv1';
 const BV_SALON_AGENT_IS_PREVIEW=false;
 let bvSalonLoaded=false;
@@ -1385,7 +1409,8 @@ async function bvRun(my){
   const opChoice=await bvChoose(my,[{label:'Con Marta',op:'o1',say:'Con Marta, se possibile'},{label:'Il primo libero',op:null,say:'Va bene il primo libero'}]); if(!bvAlive(my))return;
   bvAppt.opId=bvOp(bvAppt.svcIds,opChoice.op); const opNm=opName(bvAppt.opId);
   await bvSay(my,'ai','Perfetto. Per quando? Ho posto oggi.',250); if(!bvAlive(my))return;
-  const wChoice=await bvChoose(my,[{label:'Oggi alle 15:00',min:900,say:'Oggi pomeriggio alle tre'},{label:'Oggi alle 16:30',min:990,say:'Oggi alle quattro e mezza'}]); if(!bvAlive(my))return;
+  const _s1=Math.min(Math.max(OPEN()+60,Math.ceil((nowMin()+45)/30)*30),CLOSE()-60), _s2=Math.min(_s1+90,CLOSE()-30);
+  const wChoice=await bvChoose(my,[{label:'Oggi alle '+t2s(_s1),min:_s1,say:'Oggi alle '+t2s(_s1)},{label:'Oggi alle '+t2s(_s2),min:_s2,say:'Meglio alle '+t2s(_s2)}]); if(!bvAlive(my))return;
   bvAppt.min=wChoice.min;
   await bvWait(250); await bvTool(my,`check_availability · oggi ${bvHHMM(bvAppt.min)} · ${esc(opNm)}`,'libero'); if(!bvAlive(my))return;
   await bvSay(my,'ai',`Sì, ${esc(opNm)} è libera. A che nome la metto?`,200); if(!bvAlive(my))return;
@@ -1428,7 +1453,7 @@ function openAppt(id){
   else if(a.status==='inchair')acts=`<button class="btn primary block" data-apptact="finish|${id}">✓ Concludi servizio</button>`;
   else if(a.status==='done')acts=`<button class="btn primary block" data-apptact="tocassa|${id}">${a.paid?'✓ Già incassato':'🧾 Scontrino'}</button>`;
   else if(a.status==='noshow')acts=`<button class="btn block" data-apptact="confirm|${id}">Ripristina</button>`;
-  openModal(`<h3>${esc(a.clientName)}</h3><div class="psub">${esc(svcNames(a.serviceIds))} · ${a.dur}′ · ${euro(a.price)}<br>${esc(opName(a.operatorId))} · ${t2s(minFM(a.start))} · <span class="tag ${a.source==='voice_ai'?'voice':a.source}">${esc(a.source)}</span> · <b style="color:var(--lilla)">${esc(a.status)}</b></div>
+  openModal(`<h3>${esc(a.clientName)}</h3><div class="psub">${esc(svcNames(a.serviceIds))} · ${a.dur}′ · ${euro(a.price)}<br>${esc(opName(a.operatorId))} · ${t2s(minFM(a.start))} · <span class="tag ${a.source==='voice_ai'?'voice':a.source}">${esc(SOURCE_IT[a.source]||a.source)}</span> · <b style="color:var(--lilla)">${esc(STATUS_IT[a.status]||a.status)}</b></div>
     ${['confirmed','pending'].includes(a.status)?'<div class="hint" style="margin-bottom:10px">📩 Promemoria automatico via WhatsApp il giorno prima (taglia i no-show).</div>':''}
     ${a.phone?`<a class="btn sm" href="tel:${a.phone.replace(/\s/g,'')}" style="margin-bottom:10px">☎ ${esc(a.phone)}</a>`:''}
     <div class="pactions" style="flex-direction:column;align-items:stretch;gap:8px">${acts}<button class="btn block" data-mclose>Chiudi</button></div>`);
@@ -1534,7 +1559,7 @@ function openApptModal(){
     return `<div class="field"><label>Nome cliente</label><input id="aName" placeholder="Nome"></div>
     <div class="field"><label>Servizi</label><div class="reasons" id="aSvc">${state.services.filter(s=>s.av&&opCanDo(st.op,[s.id])).map(s=>`<button class="rchip ${st.svc.includes(s.id)?'on':''}" data-asvc="${s.id}">${s.emoji} ${esc(s.name)} ${s.dur}′</button>`).join('')}</div></div>
     <div class="field"><label>Operatore</label><div class="reasons" id="aOp">${state.operators.map(o=>`<button class="rchip ${st.op===o.id?'on':''}" data-aop="${o.id}">${esc(o.name)}</button>`).join('')}</div></div>
-    <div class="field"><label>Giorno</label><div class="seg" id="aDay">${[[0,'Oggi'],[1,'Domani'],[2,'Dopo']].map(([o,l])=>`<button class="${st.day===o?'on':''}" data-aday="${o}">${l}</button>`).join('')}</div></div>
+    <div class="field"><label>Giorno</label><div class="seg" id="aDay">${[[0,'Oggi'],[1,'Domani'],[2,'Dopodomani']].map(([o,l])=>`<button class="${st.day===o?'on':''}" data-aday="${o}">${l}</button>`).join('')}</div></div>
     <div class="field"><label>Orario ${d?'('+d+'′)':''}</label><div class="reasons" id="aSlot">${slots.length?slots.slice(0,20).map(t=>`<button class="rchip ${st.slot===t?'on':''}" data-aslot="${t}">${t2s(t)}</button>`).join(''):'<span style="font-size:12px;color:var(--grigio)">scegli servizi e operatore</span>'}</div></div>`;
   }
   function draw(){$('#apptBody').innerHTML=body();}
@@ -1570,7 +1595,7 @@ function callNext(opId){if(!state.queue.length)return;const q=state.queue.shift(
 function seatQueue(qid){const i=state.queue.findIndex(q=>q.id===qid);if(i<0)return;const q=state.queue[i];const ops=eligibleOps(q.serviceIds).filter(o=>!state.appts.some(a=>a.operatorId===o.id&&a.status==='inchair'));const opId=(ops[0]||eligibleOps(q.serviceIds)[0]||state.operators[0]).id;state.queue.splice(i,1);const d=dur(q.serviceIds);state.appts.push({id:uid('ap'),clientName:q.clientName,phone:'',operatorId:opId,serviceIds:q.serviceIds,start:isoAt(0,nowMin()),dur:d,status:'inchair',source:'walkin',notes:'',price:priceOf(q.serviceIds),tip:0,paid:false});toast(`${esc(firstName(q.clientName))} → ${esc(opName(opId))}.`);}
 function payAppt(id,method){
   const a=state.appts.find(x=>x.id===id);if(!a)return;const total=billTotal(a);
-  state.sales.push({id:uid('sa'),clientName:a.clientName,operatorId:a.operatorId,serviceIds:a.serviceIds.slice(),total:total-(a.tip||0),tip:a.tip||0,method,at:new Date().toISOString(),source:a.source,items:a.serviceIds.map(sid=>{const sv=svcById(sid);return {name:sv?sv.name:'?',price:sv?sv.price:0};})});
+  state.sales.push({id:uid('sa'),clientName:a.clientName,operatorId:a.operatorId,serviceIds:a.serviceIds.slice(),total:total-(a.tip||0),listTotal:a.price+(a.extra||0),discount:a.discount||0,tip:a.tip||0,method,at:new Date().toISOString(),source:a.source,items:a.serviceIds.map(sid=>{const sv=svcById(sid);return {name:sv?sv.name:'?',price:sv?sv.price:0};}).concat((a.products||[]).map(pr=>({name:pr.name,price:pr.price})))});
   a.paid=true;
   // update client card
   let c=findClient({name:a.clientName,phone:a.phone},true);
@@ -1597,7 +1622,7 @@ document.addEventListener('click',e=>{
   // agenda
   if(el=g('[data-agday]')){agDay=+el.dataset.agday;renderAgenda();return;}
   if(el=g('[data-appt]')){openAppt(el.dataset.appt);return;}
-  if(el=g('[data-apptact]')){const[act,id]=el.dataset.apptact.split('|');const a=state.appts.find(x=>x.id===id);
+  if(el=g('[data-apptact]')){const[act,id]=el.dataset.apptact.split('|');const a=state.appts.find(x=>x.id===id);if(!a){closeModal();return;}
     if(act==='confirm'){a.status='confirmed';toast('Confermato.');}
     else if(act==='reject'||act==='cancel'){a.status='cancelled';toast('Cancellato.');}
     else if(act==='inchair'){a.status='inchair';a.start=isoAt(0,nowMin());toast('In poltrona.');}
@@ -1615,6 +1640,7 @@ document.addEventListener('click',e=>{
   if(el=g('[data-delq]')){state.queue=state.queue.filter(q=>q.id!==el.dataset.delq);toast('Rimosso dalla coda.');renderPoltrone();renderBadges();persist();return;}
   // cassa
   if(el=g('[data-bill]')){selBill=el.dataset.bill;renderCassa();return;}
+  if(el=g('[data-pay]')){const[pid,pm]=el.dataset.pay.split('|');payAppt(pid,pm||'contanti');renderCassa();renderBadges();persist();return;}
   if(el=g('[data-tip]')){const[id,pct]=el.dataset.tip.split('|');const a=state.appts.find(x=>x.id===id);a.tip=Math.round(a.price*(+pct)/100);renderCassa();persist();return;}
   if(el=g('[data-tipcustom]')){const id=el.dataset.tipcustom;askReason('Mancia','Importo libero.',['1 €','2 €','5 €'],(label,amt)=>{const a=state.appts.find(x=>x.id===id);a.tip=amt||0;renderCassa();persist();},{amount:true,amountLabel:'Mancia €',text:false});return;}
   if(el=g('[data-addprod]')){const id=el.dataset.addprod;openModal(`<h3>Aggiungi prodotto</h3><div class="psub">Vendita al banco sul conto.</div><div class="reasons">${state.products.filter(p=>p.av).map(p=>`<button class="rchip" data-pickprod="${id}|${p.id}">${p.emoji} ${esc(p.name)} · ${euro(p.price)}</button>`).join('')}</div><div class="pactions" style="justify-content:flex-end"><button class="btn sm" data-mclose>Chiudi</button></div>`);return;}
@@ -1622,7 +1648,15 @@ document.addEventListener('click',e=>{
   if(el=g('[data-rmprod]')){const[id,idx]=el.dataset.rmprod.split('|');const a=state.appts.find(x=>x.id===id);const p=a.products.splice(+idx,1)[0];a.extra=(a.extra||0)-p.price;renderCassa();persist();return;}
   if(el=g('[data-discb]')){const id=el.dataset.discb;askReason('Sconto','Motivo e importo.',['Cliente fedele','Promo','Reclamo','Arrotondamento'],(label,amt)=>{const a=state.appts.find(x=>x.id===id);a.discount=(a.discount||0)+(amt||0);renderCassa();persist();},{amount:true,amountLabel:'Sconto €'});return;}
   if(el=g('[data-receipt]')){openReceipt(el.dataset.receipt);return;}
-  if(el=g('[data-incassa]')){payAppt(el.dataset.incassa,'contanti');closeModal();toast('Scontrino incassato.');renderBadges();renderAll();persist();return;}
+  if(el=g('[data-billdisc]')){const f=$('#bmDiscForm');if(f){f.style.display='';el.style.display='none';const i=$('#bmVal');if(i){i.focus();i.select();}}return;}
+  if(el=g('[data-billdiscgo]')){const id=el.dataset.billdiscgo;const a=state.appts.find(x=>x.id===id);if(!a)return;
+    const full=a.price+(a.extra||0)+(a.tip||0);                      // in centesimi
+    const eu=parseFloat(String(($('#bmVal')||{}).value||'').replace(',','.'));
+    const cents=Math.round(eu*100);                                  // euro digitati → centesimi
+    if(!isFinite(cents)||cents<0||cents>full){toast(`Inserisci un importo tra 0 e ${euro(full)}.`);return;}
+    a.discount=full-cents;persist();openBillModal(id);
+    toast(a.discount>0?`Sconto di ${euro(a.discount)} segnato · incassi ${euro(cents)}`:'Incasso a listino ripristinato.');return;}
+  if(el=g('[data-incassa]')){const[iid,meth]=el.dataset.incassa.split('|');payAppt(iid,meth||'contanti');closeModal();renderBadges();renderAll();persist();return;}
   if(el=g('[data-scontrino]')){openBillModal(el.dataset.scontrino);return;}
   if(el=g('[data-mkttab]')){mktCapture();mktTab=el.dataset.mkttab;renderReputazione();return;}
   if(el=g('[data-mktmode]')){mktCapture();mktMode=el.dataset.mktmode;renderReputazione();return;}
@@ -1635,9 +1669,9 @@ document.addEventListener('click',e=>{
   if(el=g('[data-mkrevpk]')){mktRevSel=el.dataset.mkrevpk==='all'?state.clients.map(c=>c.id):[];renderReputazione();return;}
   if(el=g('[data-mkaddc]')){const nm=($('#mkcName')||{}).value||'',em=($('#mkcEmail')||{}).value||'',ph=($('#mkcPhone')||{}).value||'';if(!nm.trim()){toast('Inserisci il nome del contatto.');return;}const up=upsertClient({name:nm.trim(),email:em.trim(),phone:ph.trim(),source:'manuale'});if($('#mkcName'))$('#mkcName').value='';if($('#mkcEmail'))$('#mkcEmail').value='';if($('#mkcPhone'))$('#mkcPhone').value='';mktLog('green',`<b>${esc(up.client.name)}</b> ${up.isNew?'aggiunto in':'aggiornato in'} rubrica`);toast(up.isNew?'Contatto aggiunto.':'Contatto già presente — aggiornato.');renderReputazione();persist();return;}
   if(el=g('[data-mkimport]')){let add=0;state.appts.forEach(a=>{if(a.status==='cancelled')return;if(!findClient({name:a.clientName,phone:a.phone},true)){upsertClient({name:a.clientName,phone:a.phone||'',source:'prenotazione'});add++;}});if(add){mktLog('green',`${add} contatti recuperati dalle prenotazioni`);toast(`↻ ${add} contatti recuperati dalle prenotazioni.`);}else toast('Nessuna nuova prenotazione da recuperare.');renderReputazione();persist();return;}
-  if(el=g('[data-mktsend]')){mktCapture();const pool=mktPool();const emailN=pool.filter(c=>c.email).length,waN=pool.filter(c=>c.phone).length;const isMail=mktCh==='email'||mktCh==='both',isWa=mktCh==='whatsapp'||mktCh==='both';const reach=(isMail?emailN:0)+(isWa?waN:0);if(!reach){toast('Nessun destinatario su questo canale.');return;}const opens=Math.round(reach*(isWa&&!isMail?0.82:0.46)),clicks=Math.round(reach*0.16);state.mkt.emailsSent+=(isMail?emailN:0);state.mkt.waSent+=(isWa?waN:0);state.mkt.campaigns.push({id:uid('cmp'),channel:mktCh,subject:mktDraft.subject||'',email:mktDraft.email||'',wa:mktDraft.wa||'',mode:mktMode,sentTo:reach,opens:opens,clicks:clicks,createdAt:new Date().toISOString()});mktLog('green',`Campagna ${mktCh==='both'?'email + WhatsApp':mktCh==='email'?'email':'WhatsApp'} inviata a <b>${reach}</b> contatti`);const msg=mktCh==='both'?`Campagna inviata a ${emailN} email + ${waN} WhatsApp (demo).`:`Campagna inviata a ${reach} contatti (demo).`;toast('📣 '+msg);renderReputazione();return;}
-  if(el=g('[data-mktreview]')){const pool=mktRevPool();const n=pool.length;if(!n){toast('Nessun destinatario selezionato.');return;}state.mkt.reviews.requested+=n;mktLog('gold',`Richiesta recensione inviata a <b>${n}</b> clienti`);toast(`⭐ Richiesta recensione inviata a ${n} clienti (demo).`);renderReputazione();return;}
-  if(el=g('[data-mktrevsim]')){const req=state.mkt.reviews.requested;if(!req){toast('Prima chiedi qualche recensione.');return;}const target=Math.round(req*0.28),add=Math.max(0,target-state.mkt.reviews.received);if(!add){toast('Nessuna nuova recensione simulata al momento.');return;}state.mkt.reviews.received+=add;state.rep.count+=add;state.rep.month+=add;const samp=[{name:'Sofia M.',stars:5,text:'Bravissimi, colore perfetto e super puntuali!',src:'Google',when:'ora'},{name:'Elena R.',stars:5,text:'Taglio impeccabile e prenotazione al telefono comodissima.',src:'Google',when:'ora'}];state.reviews.unshift(samp[Math.min(samp.length-1,Math.max(0,add-1))]);mktLog('gold',`+${add} recensioni ricevute (stima ~28%)`);toast(`⭐ +${add} recensioni ricevute (demo).`);renderReputazione();return;}
+  if(el=g('[data-mktsend]')){mktCapture();const pool=mktPool();const emailN=pool.filter(c=>c.email).length,waN=pool.filter(c=>c.phone).length;const isMail=mktCh==='email'||mktCh==='both',isWa=mktCh==='whatsapp'||mktCh==='both';const reach=(isMail?emailN:0)+(isWa?waN:0);if(!reach){toast('Nessun destinatario su questo canale.');return;}const opens=Math.round(reach*(isWa&&!isMail?0.82:0.46)),clicks=Math.round(reach*0.16);state.mkt.emailsSent+=(isMail?emailN:0);state.mkt.waSent+=(isWa?waN:0);state.mkt.campaigns.push({id:uid('cmp'),channel:mktCh,subject:mktDraft.subject||'',email:mktDraft.email||'',wa:mktDraft.wa||'',mode:mktMode,sentTo:reach,opens:opens,clicks:clicks,createdAt:new Date().toISOString()});mktLog('green',`Campagna ${mktCh==='both'?'email + WhatsApp':mktCh==='email'?'email':'WhatsApp'} inviata a <b>${reach}</b> contatti`);const msg=mktCh==='both'?`Campagna inviata a ${emailN} email + ${waN} WhatsApp (demo).`:`Campagna inviata a ${reach} contatti (demo).`;toast('📣 '+msg);persist();renderReputazione();return;}
+  if(el=g('[data-mktreview]')){const pool=mktRevPool();const n=pool.length;if(!n){toast('Nessun destinatario selezionato.');return;}state.mkt.reviews.requested+=n;mktLog('gold',`Richiesta recensione inviata a <b>${n}</b> clienti`);toast(`⭐ Richiesta recensione inviata a ${n} clienti (demo).`);persist();renderReputazione();return;}
+  if(el=g('[data-mktrevsim]')){const req=state.mkt.reviews.requested;if(!req){toast('Prima chiedi qualche recensione.');return;}const target=Math.round(req*0.28),add=Math.max(0,target-state.mkt.reviews.received);if(!add){toast('Nessuna nuova recensione simulata al momento.');return;}state.mkt.reviews.received+=add;state.rep.count+=add;state.rep.month+=add;const samp=[{name:'Sofia M.',stars:5,text:'Bravissimi, colore perfetto e super puntuali!',src:'Google',when:'ora'},{name:'Elena R.',stars:5,text:'Taglio impeccabile e prenotazione al telefono comodissima.',src:'Google',when:'ora'}];state.reviews.unshift(samp[Math.min(samp.length-1,Math.max(0,add-1))]);mktLog('gold',`+${add} recensioni ricevute (stima ~28%)`);toast(`⭐ +${add} recensioni ricevute (demo).`);persist();renderReputazione();return;}
   // listino
   if(el=g('[data-editsvc]')){openSvc(el.dataset.editsvc);return;}
   if(el=g('[data-delsvc]')){delSvc(el.dataset.delsvc);return;}
@@ -1653,7 +1687,7 @@ document.addEventListener('click',e=>{
   // operatori
   if(el=g('[data-addop]')){openOp(null);return;}
   if(el=g('[data-editop]')){openOp(el.dataset.editop);return;}
-  if(el=g('[data-delop]')||g('[data-delop2]')){const id=(g('[data-delop]')||g('[data-delop2]')).dataset[g('[data-delop]')?'delop':'delop2'];if(state.operators.length<=1){toast('Serve almeno un operatore.');return;}if(state.appts.some(a=>a.operatorId===id&&a.status!=='cancelled'&&!(a.status==='done'&&a.paid))){toast('Ha appuntamenti o conti da chiudere.');return;}state.operators=state.operators.filter(o=>o.id!==id);closeModal();toast('Operatore eliminato.');renderAll();persist();return;}
+  if(el=g('[data-delop]')||g('[data-delop2]')){const id=(g('[data-delop]')||g('[data-delop2]')).dataset[g('[data-delop]')?'delop':'delop2'];if(state.operators.length<=1){toast('Serve almeno un operatore.');return;}if(state.appts.some(a=>a.operatorId===id&&a.status!=='cancelled'&&!(a.status==='done'&&a.paid))){toast('Ha appuntamenti o conti da chiudere.');return;}state.operators=state.operators.filter(o=>o.id!==id);state.services.forEach(s=>{s.ops=s.ops.filter(x=>x!==id);});closeModal();toast('Operatore eliminato.');renderAll();persist();return;}
 });
 function reorderSvc(id,up){const s=svcById(id);const same=state.services.filter(x=>x.cat===s.cat).sort((a,b)=>a.ord-b.ord);const idx=same.indexOf(s);const sw=same[idx+(up?-1:1)];if(!sw)return;const t=s.ord;s.ord=sw.ord;sw.ord=t;}
 
@@ -1667,7 +1701,7 @@ $('#addOpBtn').addEventListener('click',()=>openOp(null));
 $('#cliSearch').addEventListener('input',e=>{cliSearch=(e.target.value||'').trim().toLowerCase();renderClienti();});
 $('#saveBizBtn').addEventListener('click',()=>{state.cfg.name=$('#setName').value.trim()||state.cfg.name;state.cfg.tagline=$('#setTagline').value.trim();state.cfg.accent=$('#setAccent').value;state.cfg.openH=Math.max(0,Math.min(23,Number($('#setOpen').value)||9));state.cfg.closeH=Math.max(state.cfg.openH+1,Math.min(24,Number($('#setClose').value)||19));applyAccent(state.cfg.accent);toast('Attività salvata.');renderAll();});
 $('#resetBtn').addEventListener('click',()=>{if(confirm('Reset della demo? Le modifiche andranno perse.'))resetDemo();});
-$('#zBtn').addEventListener('click',()=>{const inc=state.sales.reduce((s,x)=>s+x.total+(x.tip||0),0);toast(`Chiusura Z · incasso ${euro(inc)}.`);});
+$('#zBtn').addEventListener('click',()=>{const inc=state.sales.filter(x=>isOnDay(x.at,0)).reduce((s,x)=>s+x.total+(x.tip||0),0);toast(`Chiusura Z · incasso di oggi ${euro(inc)}.`);});
 $('#exportBtn').addEventListener('click',()=>{const data=JSON.stringify({cfg:state.cfg,operators:state.operators,services:state.services,products:state.products,clients:state.clients},null,2);const blob=new Blob([data],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(state.cfg.name||'config').toLowerCase().replace(/\s+/g,'-')+'-config.json';a.click();toast('Config esportata.');});
 $('#importBtn').addEventListener('click',()=>$('#importFile').click());
 $('#importFile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const d=JSON.parse(rd.result);if(d.cfg)state.cfg=Object.assign(state.cfg,d.cfg);if(d.operators)state.operators=d.operators;if(d.services)state.services=d.services;if(d.products)state.products=d.products;if(d.clients)state.clients=d.clients;applyAccent(state.cfg.accent);toast('Config importata.');renderAll();}catch(err){toast('File non valido.');}};rd.readAsText(f);e.target.value='';});
@@ -1678,11 +1712,14 @@ const VIEW_IDS=VIEWS.map(v=>v[0]);
 const VIEW_ALIAS={agenda:'agenda',calendario:'agenda',assistente:'assistente',voce:'assistente',poltrone:'poltrone',chairs:'poltrone',cassa:'cassa',pos:'cassa',cliente:'cliente',prenota:'cliente',prova:'prova',look:'prova',listino:'report',clienti:'clienti',operatori:'operatori',report:'report',gestionale:'report',recensioni:'reputazione',reputazione:'reputazione'};
 function resolveView(v){ if(!v)return null; v=v.toLowerCase(); v=VIEW_ALIAS[v]||v; return VIEW_IDS.includes(v)?v:null; }
 function applyKiosk(){
-  const want=resolveView(Q.get('vista')||Q.get('view'));
+  const _raw=(Q.get('vista')||Q.get('view')||'').toLowerCase();
+  const want=resolveView(_raw);
   if(want)view=want;
+  if(_raw==='listino')gestTab='listino';
+  if(_raw==='recensioni')mktTab='recensioni';
   if(Q.get('kiosk')==='1'||Q.get('kiosk')==='true'){
     document.body.classList.add('kiosk');
-    const lab={cliente:'📱 Cliente · prenota',agenda:'📅 Agenda',assistente:'🎙 Assistente',poltrone:'💈 Poltrone',cassa:'🧾 Cassa · POS',clienti:'🧑 Clienti',operatori:'✂️ Operatori',report:'📊 Gestionale',reputazione:'📣 Marketing',home:'Console'}[view]||'Schermo';
+    const lab={cliente:'📱 Cliente · prenota',agenda:'📅 Agenda',assistente:'🎙 Assistente',poltrone:'💈 Poltrone',cassa:'🧾 Cassa · POS',clienti:'🧑 Clienti',operatori:'✂️ Operatori',report:'📊 Gestionale',reputazione:'📣 Marketing',prova:'✨ Prova look',impostazioni:'⚙️ Impostazioni',home:'Console'}[view]||'Schermo';
     const t=$('#kioskTag'); if(t){t.textContent=lab;t.style.display='';}
   }
 }
