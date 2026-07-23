@@ -980,6 +980,17 @@ function renderProva(){
     if(!selfie){ toast('Carica prima un selfie.'); return; }
     if(mode==='ref' && !refImg){ toast('Carica una foto di riferimento.'); return; }
     if(mode==='compose' && !combo()){ toast('Scegli almeno taglio, piega o colore.'); return; }
+    // Consenso privacy (una volta per sessione): la foto va a un servizio AI esterno (fal.ai, USA)
+    // solo per creare l'anteprima e NON viene conservata. Chiediamo consenso esplicito prima dell'invio.
+    if(!sessionStorage.getItem('bv-hair-consent')){
+      $('#pvResult').innerHTML='<div class="hint" style="text-align:left;line-height:1.55">🔒 <b>Prima di procedere</b><br>Per generare l\'anteprima la tua foto viene inviata a un servizio di intelligenza artificiale esterno (fal.ai). Serve solo a creare l\'immagine: <b>non viene conservata</b> né usata per altro.</div>'
+        +'<label style="display:flex;gap:8px;align-items:flex-start;margin:12px 0;font-size:13px;cursor:pointer"><input type="checkbox" id="pvConsent" style="margin-top:3px"> Ho letto e acconsento all\'invio della mia foto per generare l\'anteprima del look.</label>'
+        +'<button class="btn primary" id="pvConsentGo" style="width:100%;padding:12px;font-weight:800;opacity:.5" disabled>Procedi</button>';
+      const cb=$('#pvConsent'), go2=$('#pvConsentGo');
+      cb.addEventListener('change',()=>{ go2.disabled=!cb.checked; go2.style.opacity=cb.checked?'1':'.5'; });
+      go2.addEventListener('click',()=>{ sessionStorage.setItem('bv-hair-consent','1'); $('#pvGo').click(); });
+      return;
+    }
     const useRef = (mode==='ref') && !!refImg;
     const payload = useRef ? { image:selfie, reference:refImg, taglio:'', piega:'', colore:'' }
                            : { image:selfie, reference:null, taglio:pick('pv_cut'), piega:pick('pv_style'), colore:pick('pv_color') };
