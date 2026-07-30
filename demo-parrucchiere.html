@@ -256,6 +256,21 @@
   .bvc-done{flex-basis:100%;text-align:center;color:var(--verde);font-weight:700;font-size:13.5px;margin:2px 0 6px}
   .bvc-voicewrap{text-align:center;padding:10px 4px}
   .bvc-vlead{font-size:13.5px;color:#cdd0d6;line-height:1.5;margin-bottom:14px}
+  /* scheda cliente: note in evidenza, prossimo appuntamento, storico */
+  .note-hi{background:rgba(255,196,0,.10);border:1px solid rgba(255,196,0,.34);border-radius:10px;padding:8px 11px;font-size:12.5px;line-height:1.5;margin:10px 0}
+  .nextap{background:rgba(201,169,233,.10);border:1px solid var(--line2);border-radius:10px;padding:8px 11px;font-size:12.5px;margin:0 0 10px}
+  .cstats{display:flex;gap:8px;margin:2px 0 10px}
+  .cstats span{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:8px 4px;font-size:10.5px;color:var(--grigio);text-transform:uppercase;letter-spacing:.04em}
+  .cstats span b{font-size:15px;color:var(--bianco);letter-spacing:0;text-transform:none}
+  .hlab{font-size:10.5px;font-weight:800;color:var(--lilla);letter-spacing:.08em;text-transform:uppercase;margin:12px 0 6px}
+  .hlist{display:flex;flex-direction:column;gap:5px}
+  .hrow{display:flex;align-items:baseline;gap:8px;font-size:12px;padding:6px 9px;background:var(--surface2);border:1px solid var(--line);border-radius:8px}
+  .hrow .hd{flex:0 0 52px;color:var(--grigio);font-weight:700}
+  .hrow .hs{flex:1;min-width:0}
+  .hrow .hs i{color:var(--grigio);font-style:normal}
+  .hrow .ha{font-weight:800;color:var(--lilla-chiaro)}
+  .hmore{font-size:11px;color:var(--grigio);margin-top:6px;text-align:center}
+  .hempty{font-size:11.5px;color:var(--grigio);padding:8px 10px;background:var(--surface2);border:1px dashed var(--line);border-radius:8px}
   .bvc-vlive{margin-top:12px;padding:9px 12px;border:1px solid rgba(201,169,233,.35);border-radius:10px;background:rgba(201,169,233,.07);font-size:12.5px;line-height:1.55}
   .bvc-vnum{color:var(--lilla);font-weight:800;text-decoration:none;font-size:14px}
   .bvc-vnum:hover{text-decoration:underline}
@@ -1157,19 +1172,30 @@ function renderListino(){
 
 // ===================== CLIENTI =====================
 function renderClienti(){
-  roleStrip('roles-cl2','🧑','Reception','schede cliente: storico, note, fidelizzazione','desktop');
+  roleStrip('roles-cl2','🧑','Reception','schede cliente: storico servizi, note fisse, prossimo appuntamento','desktop');
   const list=state.clients.filter(c=>!cliSearch||c.name.toLowerCase().includes(cliSearch)).sort((a,b)=>b.spend-a.spend);
+  const ora=Date.now();
   $('#clientsBody').innerHTML=list.length?list.map(c=>{
     const ini=c.name.split(' ').filter(Boolean).map(x=>x[0]).slice(0,2).join('').toUpperCase();
+    // COLLEGAMENTO ALL'AGENDA: appuntamenti futuri di questo cliente (per nome o telefono)
+    const suoi=state.appts.filter(a=>a.status!=='cancelled'&&(a.clientName===c.name||(c.phone&&a.phone&&a.phone===c.phone)));
+    const pross=suoi.filter(a=>new Date(a.start).getTime()>=ora).sort((a,b)=>new Date(a.start)-new Date(b.start))[0];
+    // STORICO: ultime 3 visite con data, servizi, operatore e importo
+    const st=(c.history||[]).slice().sort((x,y)=>new Date(y.at)-new Date(x.at));
+    const storico=st.slice(0,3).map(h=>{
+      const dt=new Date(h.at).toLocaleDateString('it-IT',{day:'2-digit',month:'short'});
+      const sv=(h.services||[]).join(' + ')||'—';
+      const chi=h.operatorId?esc((opById(h.operatorId)||{name:''}).name):'';
+      return `<div class="hrow"><span class="hd">${dt}</span><span class="hs">${esc(sv)}${chi?` <i>· ${chi}</i>`:''}</span><span class="ha">${h.amount!=null?euro(h.amount):''}</span></div>`;
+    }).join('');
     return `<div class="ccard"><div class="ch"><div class="av">${esc(ini)}</div><div class="nm"><b>${esc(c.name)}</b><div class="ph">${c.phone?esc(c.phone):'—'}${c.email?' · '+esc(c.email):''}</div></div></div>
-      <div class="crow"><span>Visite</span><b>${c.visits}</b></div>
-      <div class="crow"><span>Punti fedeltà</span><b style="color:var(--giallo)">${c.visits*10} pt</b></div>
-      <div class="crow"><span>Spesa totale</span><b style="color:var(--lilla-chiaro)">${euro(c.spend)}</b></div>
-      <div class="crow"><span>Ultima</span><span>${c.last?new Date(c.last).toLocaleDateString('it-IT'):'—'}</span></div>
-      ${(c.history&&c.history.length)?`<div class="crow"><span>Ultimo servizio</span><span>${esc((c.history.slice().sort((x,y)=>new Date(y.at)-new Date(x.at))[0].services||[]).join(' + ')||'—')}</span></div>`:''}
-      <div class="crow"><span>Preferito</span><span>${c.pref?esc((opById(c.pref)||{name:'—'}).name):'—'}</span></div>
-      ${c.notes?`<div class="note">📝 ${esc(c.notes)}</div>`:''}
-      <div class="cact"><button class="btn sm block" data-editcli="${c.id}">${EDIT} Scheda</button></div></div>`;
+      ${c.notes?`<div class="note note-hi">📝 <b>Da ricordare:</b> ${esc(c.notes)}</div>`:''}
+      ${pross?`<div class="nextap">📅 <b>Prossimo:</b> ${new Date(pross.start).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'})} alle ${new Date(pross.start).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})} · ${esc(opName(pross.operatorId))}</div>`:''}
+      <div class="cstats"><span><b>${c.visits}</b>visite</span><span><b>${euro(c.spend)}</b>totali</span><span><b>${c.visits?euro(Math.round(c.spend/c.visits)):'—'}</b>media</span></div>
+      <div class="crow"><span>Ultima visita</span><span>${c.last?new Date(c.last).toLocaleDateString('it-IT'):'—'}</span></div>
+      <div class="crow"><span>Operatore preferito</span><span>${c.pref?esc((opById(c.pref)||{name:'—'}).name):'—'}</span></div>
+      ${storico?`<div class="hlab">Storico servizi</div><div class="hlist">${storico}</div>${st.length>3?`<div class="hmore">+${st.length-3} visite precedenti nella scheda</div>`:''}`:'<div class="hlab">Storico servizi</div><div class="hempty">Nessuna visita registrata: comparirà qui dopo il primo servizio.</div>'}
+      <div class="cact"><button class="btn sm primary block" data-bookcli="${c.id}">📅 Prenota</button><button class="btn sm block" data-editcli="${c.id}">${EDIT} Scheda</button></div></div>`;
   }).join(''):'<div class="empty">Nessun cliente.</div>';
 }
 
@@ -1605,12 +1631,14 @@ function openWalkin(){
   $('#wSave').addEventListener('click',()=>{const name=$('#wName').value.trim()||'Walk-in';if(!picked.length){toast('Scegli un servizio.');return;}state.queue.push({id:uid('q'),clientName:name,serviceIds:picked.slice(),addedAt:Date.now()});closeModal();toast('Aggiunto in coda.');renderAll();persist();});
 }
 // staff add appointment
-function openApptModal(){
-  let st={svc:[],op:state.operators[0].id,day:0,slot:null};
+function openApptModal(cli){
+  // cli (opzionale): scheda cliente da cui si prenota → nome, telefono e operatore preferito già pronti
+  let st={svc:[],op:(cli&&cli.pref)||state.operators[0].id,day:0,slot:null};
   function body(){
     const d=dur(st.svc);
     const slots=freeSlots(st.op,st.day,d||30);if(st.slot&&!slots.includes(st.slot))st.slot=null;
-    return `<div class="field"><label>Nome cliente</label><input id="aName" placeholder="Nome"></div>
+    return `<div class="field"><label>Nome cliente</label><input id="aName" placeholder="Nome" value="${cli?esc(cli.name):''}"></div>
+    ${cli&&cli.notes?`<div class="note note-hi">📝 <b>Da ricordare:</b> ${esc(cli.notes)}</div>`:''}
     <div class="field"><label>Servizi</label><div class="reasons" id="aSvc">${state.services.filter(s=>s.av&&opCanDo(st.op,[s.id])).map(s=>`<button class="rchip ${st.svc.includes(s.id)?'on':''}" data-asvc="${s.id}">${s.emoji} ${esc(s.name)} ${s.dur}′</button>`).join('')}</div></div>
     <div class="field"><label>Operatore</label><div class="reasons" id="aOp">${state.operators.map(o=>`<button class="rchip ${st.op===o.id?'on':''}" data-aop="${o.id}">${esc(o.name)}</button>`).join('')}</div></div>
     <div class="field"><label>Giorno</label><div class="seg" id="aDay">${[[0,'Oggi'],[1,'Domani'],[2,'Dopodomani']].map(([o,l])=>`<button class="${st.day===o?'on':''}" data-aday="${o}">${l}</button>`).join('')}</div></div>
@@ -1627,7 +1655,7 @@ function openApptModal(){
     else if(b=e.target.closest('[data-aday]')){st.day=+b.dataset.aday;draw();$('#aName').value=keep;}
     else if(b=e.target.closest('[data-aslot]')){st.slot=+b.dataset.aslot;draw();$('#aName').value=keep;}
   });
-  $('#aSave').addEventListener('click',()=>{const name=$('#aName').value.trim()||'Cliente';if(!st.svc.length||st.slot==null){toast('Scegli servizio e orario.');return;}const d=dur(st.svc);state.appts.push({id:uid('ap'),clientName:name,phone:'',operatorId:st.op,serviceIds:st.svc.slice(),start:isoAt(st.day,st.slot),dur:d,status:'confirmed',source:'manual',notes:'',price:priceOf(st.svc),tip:0,paid:false});closeModal();toast('Appuntamento creato.');renderAll();persist();});
+  $('#aSave').addEventListener('click',()=>{const name=$('#aName').value.trim()||'Cliente';if(!st.svc.length||st.slot==null){toast('Scegli servizio e orario.');return;}const d=dur(st.svc);state.appts.push({id:uid('ap'),clientName:name,phone:(cli&&cli.phone)||'',operatorId:st.op,serviceIds:st.svc.slice(),start:isoAt(st.day,st.slot),dur:d,status:'confirmed',source:'manual',notes:(cli&&cli.notes)||'',price:priceOf(st.svc),tip:0,paid:false});closeModal();toast('Appuntamento creato.');renderAll();persist();});
 }
 
 // receipt
@@ -1738,6 +1766,7 @@ document.addEventListener('click',e=>{
   if(el=g('[data-delprod]')){if(confirm('Eliminare il prodotto?')){state.products=state.products.filter(p=>p.id!==el.dataset.delprod);renderListino();persist();}return;}
   if(el=g('[data-delprod2]')){state.products=state.products.filter(p=>p.id!==el.dataset.delprod2);closeModal();toast('Prodotto eliminato.');renderListino();persist();return;}
   // clienti
+  if(el=g('[data-bookcli]')){const cc=state.clients.find(x=>x.id===el.dataset.bookcli); if(cc) openApptModal(cc); return;}
   if(el=g('[data-editcli]')){openCli(el.dataset.editcli);return;}
   if(el=g('[data-delcli]')){state.clients=state.clients.filter(c=>c.id!==el.dataset.delcli);closeModal();toast('Scheda eliminata.');renderClienti();persist();return;}
   // operatori
