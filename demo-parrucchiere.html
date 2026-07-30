@@ -791,6 +791,76 @@ function buildNav(){
   }).join('');
 }
 function go(v){view=v;$$('.vtab').forEach(b=>b.classList.toggle('active',b.dataset.go===v));$$('.view').forEach(s=>s.classList.toggle('active',s.id==='v-'+v));renderAll();window.scrollTo({top:0,behavior:'smooth'});}
+// ===================== APPUNTAMENTI PRESI AL TELEFONO (assistente vocale) =====================
+// Il salone è una demo statica: l'assistente vocale scrive gli appuntamenti sul server
+// dell'assistente e qui li leggiamo ogni 6 secondi, portandoli nell'agenda come qualunque
+// altro appuntamento (source 'voce'). Così una prenotazione fatta a voce compare DAVVERO.
+const AGENTE_URL='https://87-106-50-184.sslip.io';
+const vociViste=new Set();
+function servizioDaTesto(txt){
+  const t=(txt||'').toLowerCase();
+  // cerca il servizio del listino che somiglia più a quello detto al telefono
+  let best=null;
+  for(const sv of state.services){
+    const n=sv.name.toLowerCase();
+    if(t.includes(n)||n.includes(t)){ best=sv; break; }
+    const parola=n.split(' ')[0];
+    if(parola.length>3&&t.includes(parola)){ best=best||sv; }
+  }
+  if(!best&&/colp|meches|schiar/.test(t)) best=state.services.find(x=>/colpi/i.test(x.name));
+  if(!best&&/colo|tint/.test(t))          best=state.services.find(x=>/colore/i.test(x.name));
+  if(!best&&/pieg|asciug/.test(t))        best=state.services.find(x=>/piega/i.test(x.name));
+  if(!best&&/barb/.test(t))               best=state.services.find(x=>/barba/i.test(x.name));
+  if(!best&&/tagl/.test(t))               best=state.services.find(x=>/taglio/i.test(x.name));
+  return best||state.services.find(x=>x.av)||state.services[0];
+}
+function isoDaDataOra(data,ora){
+  try{
+    const [Y,M,D]=String(data).split('-').map(Number);
+    const [h,m]=String(ora).split(':').map(Number);
+    const d=new Date(Y,(M||1)-1,D||1,h||10,m||0,0,0);
+    return isNaN(d) ? null : d.toISOString();
+  }catch(e){ return null; }
+}
+function operatoreLibero(startIso,durata){
+  // primo operatore senza sovrapposizioni in quella fascia
+  const s0=new Date(startIso).getTime(), s1=s0+durata*60000;
+  for(const o of state.operators){
+    const collide=state.appts.some(a=>a.operatorId===o.id&&a.status!=='cancelled'&&(()=>{
+      const a0=new Date(a.start).getTime(), a1=a0+(a.dur||30)*60000; return a0<s1&&s0<a1;
+    })());
+    if(!collide) return o.id;
+  }
+  return state.operators[0].id;
+}
+function importaVoce(list){
+  let nuovi=0, ultimo=null;
+  (list||[]).forEach(v=>{
+    if(!v||!v.id||vociViste.has(v.id))return;
+    vociViste.add(v.id);
+    if(state.appts.some(a=>a.voceId===v.id))return;          // già importato in una sessione precedente
+    const start=isoDaDataOra(v.data,v.ora); if(!start)return;
+    const sv=servizioDaTesto(v.servizio); if(!sv)return;
+    const ids=[sv.id], d=dur(ids);
+    state.appts.push({id:uid('ap'),voceId:v.id,clientName:v.nome||'Cliente',phone:v.telefono||'',
+      operatorId:operatoreLibero(start,d),serviceIds:ids,start,dur:d,status:'confirmed',
+      source:'voce',notes:'Preso dall\'assistente al telefono',price:priceOf(ids),tip:0,paid:false});
+    nuovi++; ultimo=v;
+  });
+  if(nuovi){
+    // se è una prenotazione appena arrivata, porta l'agenda sul giorno giusto
+    try{ const g=Math.round((new Date(isoDaDataOra(ultimo.data,ultimo.ora)).setHours(0,0,0,0)-new Date().setHours(0,0,0,0))/86400000);
+         if(g>=0&&g<=2) agDay=g; }catch(e){}
+    renderAll(); persist();
+    toast(`📞 <b>${esc(ultimo.nome||'Cliente')}</b> ha prenotato al telefono: ${esc(ultimo.servizio||'')} · ${esc(ultimo.ora||'')}`);
+  }
+}
+function leggiAgendaVoce(){
+  fetch(AGENTE_URL+'/agenda-salone',{cache:'no-store'})
+    .then(r=>r.json()).then(d=>importaVoce(d&&d.appuntamenti))
+    .catch(()=>{});   // assistente non raggiungibile: la demo funziona comunque
+}
+
 function renderAll(){$('#tbBiz').textContent=state.cfg.name;renderBadges();({cliente:renderCliente,prova:renderProva,agenda:renderAgenda,assistente:renderAssistente,poltrone:renderPoltrone,clienti:renderClienti,operatori:renderOperatori,report:renderGestionale,reputazione:renderReputazione,impostazioni:renderSettings}[view]||(()=>{}))();persist();}
 function renderBadges(){
   const pend=state.appts.filter(a=>a.status==='pending').length,ba=$('#badge-ag');if(ba){ba.textContent=pend;ba.style.display=pend?'':'none';}
@@ -1858,6 +1928,8 @@ function maybeAutostartTour(){ const t=(Q.get('tour')||'').toLowerCase(); if(t==
 const _tb=$('#tourBtn'); if(_tb)_tb.addEventListener('click',()=>{ tourOn?stopTour():startTour(false); });
 
 boot();
+// appuntamenti presi al telefono dall'assistente: li portiamo in agenda in diretta
+leggiAgendaVoce(); setInterval(leggiAgendaVoce, 6000);
 </script>
 </body>
 </html>
