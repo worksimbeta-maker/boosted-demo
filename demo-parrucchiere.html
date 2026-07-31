@@ -388,10 +388,11 @@
       </div>
     </section>
 
-    <section class="view" id="v-prova">
-      <div id="roles-prova"></div>
-      <div id="provaBody" style="padding:14px 16px"></div>
-    </section>
+    <!-- "Prova look" RIMOSSA il 31/07/2026. Mandava la FOTO DEL CLIENTE (dato personale) a fal.ai
+         negli Stati Uniti, passando per /api/hair dell'ecommerce — rotta a sua volta rimossa il 30/07
+         insieme alle prove virtuali su foto di persone. Quindi era gia' rotta, e la chiave fal.ai e'
+         stata revocata. NON reintrodurre senza: fornitore UE o on-premise, consenso esplicito
+         verificabile, e la voce nell'informativa. -->
     <section class="view" id="v-agenda">
       <div id="roles-ag"></div>
       <div class="kpis" id="kpis-ag"></div>
@@ -523,7 +524,8 @@
           <button class="btn primary block" data-mktsend style="margin-top:6px">Invia campagna (demo)</button>
         </div>
         <div class="card" style="margin-top:14px">
-          <div class="sec-title" style="justify-content:space-between"><span>Campagne inviate</span><span style="font-size:11px;color:var(--grigio)">aperture/click = stima</span></div>
+          <!-- "Campagne inviate" era falso: in questa demo non parte nessun messaggio. -->
+          <div class="sec-title" style="justify-content:space-between"><span>Campagne preparate</span><span style="font-size:11px;color:#fbbf24">nessun invio reale · numeri di esempio</span></div>
           <div id="mktHistory"></div>
         </div>
       </div>
@@ -783,7 +785,7 @@ function boot(){
 function resetDemo(){localStorage.removeItem(LSKEY);state=freshState(CONFIG);seed();persist();applyAccent(state.cfg.accent);selBill=null;gestTab='incassi';cliSel={services:[],operator:'any',day:0,slot:null};cliBooked=null;go('agenda');toast('Demo riportata allo stato iniziale.');}
 
 // ===================== nav / router =====================
-const VIEWS=[['cliente','Cliente · prenota','cliente'],['prova','Prova look','voice'],['agenda','Agenda','agenda'],['assistente','Assistente','voice'],['poltrone','Poltrone','poltrone'],['clienti','Clienti','clienti'],['operatori','Operatori','operatori'],['report','Gestionale','report'],['reputazione','Marketing','star'],['impostazioni','Impostazioni','set']];
+const VIEWS=[['cliente','Cliente · prenota','cliente'],['agenda','Agenda','agenda'],['assistente','Assistente','voice'],['poltrone','Poltrone','poltrone'],['clienti','Clienti','clienti'],['operatori','Operatori','operatori'],['report','Gestionale','report'],['reputazione','Marketing','star'],['impostazioni','Impostazioni','set']];
 function buildNav(){
   $('#viewnav').innerHTML=VIEWS.map(([id,label,icon])=>{
     const badge=id==='agenda'?'<span class="vt-badge" id="badge-ag" style="display:none">0</span>':id==='poltrone'?'<span class="vt-badge" id="badge-pol" style="display:none">0</span>':id==='cassa'?'<span class="vt-badge" id="badge-cassa" style="display:none">0</span>':'';
@@ -861,7 +863,7 @@ function leggiAgendaVoce(){
     .catch(()=>{});   // assistente non raggiungibile: la demo funziona comunque
 }
 
-function renderAll(){$('#tbBiz').textContent=state.cfg.name;renderBadges();({cliente:renderCliente,prova:renderProva,agenda:renderAgenda,assistente:renderAssistente,poltrone:renderPoltrone,clienti:renderClienti,operatori:renderOperatori,report:renderGestionale,reputazione:renderReputazione,impostazioni:renderSettings}[view]||(()=>{}))();persist();}
+function renderAll(){$('#tbBiz').textContent=state.cfg.name;renderBadges();({cliente:renderCliente,agenda:renderAgenda,assistente:renderAssistente,poltrone:renderPoltrone,clienti:renderClienti,operatori:renderOperatori,report:renderGestionale,reputazione:renderReputazione,impostazioni:renderSettings}[view]||(()=>{}))();persist();}
 function renderBadges(){
   const pend=state.appts.filter(a=>a.status==='pending').length,ba=$('#badge-ag');if(ba){ba.textContent=pend;ba.style.display=pend?'':'none';}
   const q=state.queue.length+state.appts.filter(a=>a.status==='inchair').length,bp=$('#badge-pol');if(bp){bp.textContent=q;bp.style.display=q?'':'none';}
@@ -1013,94 +1015,6 @@ function confirmCliBooking(){
 }
 
 // ===================== AGENDA =====================
-// ===================== PROVA LOOK (taglio/piega/colore) =====================
-function pvScaled(file,max,q){ return new Promise((res,rej)=>{ const img=new Image(); const u=URL.createObjectURL(file); img.onload=()=>{ try{ let w=img.naturalWidth||img.width,h=img.naturalHeight||img.height; const s=Math.min(1,(max||1024)/Math.max(w,h||1)); w=Math.max(1,Math.round(w*s));h=Math.max(1,Math.round(h*s)); const c=document.createElement('canvas'); c.width=w;c.height=h; c.getContext('2d').drawImage(img,0,0,w,h); URL.revokeObjectURL(u); res(c.toDataURL('image/jpeg',q||0.82)); }catch(e){URL.revokeObjectURL(u);rej(e);} }; img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('img'));}; img.src=u; }); }
-function renderProva(){
-  roleStrip('roles-prova','✨','Cliente','prova taglio, piega e colore prima di prenotare','telefono · web');
-  const el=$('#provaBody'); if(!el) return;
-  const cuts=['Taglio corto','Bob','Long bob','Caschetto','Scalato','Frangia','Rasato ai lati','Medio lungo','Lungo','Shag','Pixie','Undercut'];
-  const styles=['Liscio','Mosso','Onde morbide','Ricci','Boccoli','Piega voluminosa','Wet look','Raccolto','Coda alta'];
-  const colors=['Biondo','Castano','Nero','Rame','Rosso','Balayage','Colpi di sole','Platino','Cioccolato','Miele','Rosa pastello','Argento'];
-  const grp=(label,id,opts,icon)=>'<div class="pvsec" style="margin-bottom:10px;border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:12px">'
-      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:16px">'+icon+'</span><b style="font-size:14px">'+label+'</b><span class="pvstate" id="'+id+'_state" style="margin-left:auto;font-size:11px;opacity:.6">—</span></div>'
-      +'<div id="'+id+'" class="pvchips" style="display:flex;flex-wrap:wrap;gap:6px">'+opts.map(o=>'<button class="opchip" data-v="'+esc(o)+'">'+esc(o)+'</button>').join('')+'</div></div>';
-  el.innerHTML =
-    '<div class="hint" style="margin-bottom:14px">Prova il tuo prossimo look <b>prima di prenotare</b>. Scegli <b>solo ciò che vuoi cambiare</b> — taglio, piega, colore: una, due o tutte e tre. Oppure copia un look da una foto.</div>'
-    + '<div class="bklab" style="margin:0 0 6px">1 · La tua foto (selfie di fronte, ben illuminato)</div>'
-    + '<div id="pvSelfiePrev" style="margin-bottom:6px"></div>'
-    + '<button class="btn primary" id="pvPick" style="margin-bottom:16px">📷 Carica il tuo selfie</button>'
-    + '<div class="bklab" style="margin:0 0 8px">2 · Come vuoi provare il look</div>'
-    + '<div id="pvTabs" style="display:flex;gap:6px;margin-bottom:12px">'
-        + '<button class="opchip on" data-tab="compose" style="flex:1;padding:9px 6px">🎛 Componi tu</button>'
-        + '<button class="opchip" data-tab="ref" style="flex:1;padding:9px 6px">🖼 Copia da una foto</button>'
-      + '</div>'
-    + '<div id="pvCompose">'
-        + '<div class="hint" style="margin:-2px 0 10px;opacity:.75">Attiva una o più sezioni. Quelle che lasci su “—” non vengono toccate.</div>'
-        + grp('Taglio','pv_cut',cuts,'✂️') + grp('Piega','pv_style',styles,'💨') + grp('Colore','pv_color',colors,'🎨')
-      + '</div>'
-    + '<div id="pvRefBox" style="display:none">'
-        + '<div class="hint" style="margin:-2px 0 10px;opacity:.75">Carica la foto di un look che ti piace: <b>taglio, piega e colore vengono copiati da quella foto</b> — le sezioni sopra non servono.</div>'
-        + '<div id="pvRefPrev" style="margin-bottom:8px"></div>'
-        + '<button class="btn" id="pvRefPick">🖼 Carica foto di riferimento</button>'
-        + '<div id="pvLooks"></div>'
-      + '</div>'
-    + '<input type="file" id="pvFile" accept="image/*" style="display:none"><input type="file" id="pvRefFile" accept="image/*" style="display:none">'
-    + '<div id="pvSummary" class="hint" style="margin:14px 0 0;font-weight:700"></div>'
-    + '<button class="btn primary" id="pvGo" disabled style="opacity:.5;margin-top:8px;width:100%;padding:13px;font-weight:800">✨ Prova questo look</button>'
-    + '<div id="pvResult" style="margin-top:16px"></div>';
-  let selfie=null, refImg=null, mode='compose';
-  const file=$('#pvFile'), refFile=$('#pvRefFile'), refPrev=$('#pvRefPrev');
-  const pick=(id)=>{ const g=$('#'+id), on=g&&g.querySelector('.opchip.on'); return on?on.dataset.v:''; };
-  const combo=()=>[pick('pv_cut'),pick('pv_style'),pick('pv_color')].filter(Boolean).join(' · ');
-  function updState(){ ['pv_cut','pv_style','pv_color'].forEach(id=>{ const s=$('#'+id+'_state'); if(s){ const v=pick(id); s.textContent=v||'—'; s.style.opacity=v?'1':'.6'; s.style.color=v?'var(--lilla)':''; } }); }
-  function updSummary(){ const sm=$('#pvSummary'); if(!sm)return; if(mode==='ref'){ sm.textContent=refImg?'Proverai: il look della foto di riferimento':'Carica una foto di riferimento'; } else { const c=combo(); sm.textContent=c?('Proverai: '+c):'Scegli almeno taglio, piega o colore'; } }
-  // chip a interruttore: riclicca per togliere → una sezione può restare vuota (non viene toccata)
-  el.querySelectorAll('#pvCompose .pvchips').forEach(g=>g.addEventListener('click',e=>{ const b=e.target.closest('[data-v]'); if(!b)return; const wasOn=b.classList.contains('on'); g.querySelectorAll('.opchip').forEach(x=>x.classList.remove('on')); if(!wasOn)b.classList.add('on'); updState(); updSummary(); }));
-  // tab Componi tu / Copia da una foto
-  $('#pvTabs').addEventListener('click',e=>{ const b=e.target.closest('[data-tab]'); if(!b)return; mode=b.dataset.tab; $('#pvTabs').querySelectorAll('.opchip').forEach(x=>x.classList.toggle('on',x===b)); $('#pvCompose').style.display=mode==='compose'?'':'none'; $('#pvRefBox').style.display=mode==='ref'?'':'none'; updSummary(); });
-  $('#pvPick').addEventListener('click',()=>file.click());
-  file.addEventListener('change',async()=>{ const f=file.files[0]; if(!f)return; file.value=''; try{ selfie=await pvScaled(f,1024,0.82); const go=$('#pvGo'); go.disabled=false; go.style.opacity='1'; const sp=$('#pvSelfiePrev'); if(sp)sp.innerHTML='<img src="'+selfie+'" alt="il tuo selfie" style="max-width:120px;max-height:120px;border-radius:12px;border:1px solid rgba(255,255,255,.16)">'; $('#pvResult').innerHTML='<div class="hint">Selfie caricato ✓ — ora componi il look o copia da una foto.</div>'; }catch(_){ toast('Foto non leggibile, riprova.'); } });
-  function setRef(src){ refImg=src; if(refPrev)refPrev.innerHTML=src?'<img src="'+src+'" alt="riferimento" style="max-width:120px;max-height:120px;border-radius:12px;border:2px solid var(--lilla);vertical-align:middle"> <button class="btn" id="pvRefClr" style="margin-left:8px">Togli</button>':''; const clr=$('#pvRefClr'); if(clr)clr.addEventListener('click',()=>{ setRef(null); const box=$('#pvLooks'); if(box)box.querySelectorAll('.pvlook').forEach(x=>x.style.borderColor='transparent'); }); updSummary(); }
-  $('#pvRefPick').addEventListener('click',()=>refFile.click());
-  refFile.addEventListener('change',async()=>{ const f=refFile.files[0]; if(!f)return; refFile.value=''; try{ setRef(await pvScaled(f,1024,0.82)); }catch(_){ toast('Foto non leggibile.'); } });
-  // look pronti realistici (se generati con "Genera look parrucchiere")
-  if(window.BOOSTED_LOOKS && window.BOOSTED_LOOKS.length){ const box=$('#pvLooks'); if(box){ box.innerHTML='<div class="bklab" style="margin:14px 0 6px">Oppure scegli un look pronto</div><div style="display:flex;flex-wrap:wrap;gap:8px">'+window.BOOSTED_LOOKS.map((l,i)=>'<button class="pvlook" data-i="'+i+'" style="width:78px;border:2px solid transparent;border-radius:12px;overflow:hidden;padding:0;cursor:pointer;background:none"><img src="'+l.img+'" alt="'+esc(l.label)+'" style="width:100%;height:96px;object-fit:cover;display:block"><div style="font-size:10px;padding:3px 2px;opacity:.85;text-align:center">'+esc(l.label)+'</div></button>').join('')+'</div>'; box.addEventListener('click',e=>{ const b=e.target.closest('[data-i]'); if(!b)return; setRef(window.BOOSTED_LOOKS[+b.getAttribute('data-i')].img); box.querySelectorAll('.pvlook').forEach(x=>x.style.borderColor='transparent'); b.style.borderColor='var(--lilla)'; }); } }
-  updState(); updSummary();
-  $('#pvGo').addEventListener('click',async()=>{
-    if(!selfie){ toast('Carica prima un selfie.'); return; }
-    if(mode==='ref' && !refImg){ toast('Carica una foto di riferimento.'); return; }
-    if(mode==='compose' && !combo()){ toast('Scegli almeno taglio, piega o colore.'); return; }
-    // Consenso privacy (una volta per sessione): la foto va a un servizio AI esterno (fal.ai, USA)
-    // solo per creare l'anteprima e NON viene conservata. Chiediamo consenso esplicito prima dell'invio.
-    if(!sessionStorage.getItem('bv-hair-consent')){
-      $('#pvResult').innerHTML='<div class="hint" style="text-align:left;line-height:1.55">🔒 <b>Prima di procedere</b><br>Per generare l\'anteprima la tua foto viene inviata a un servizio di intelligenza artificiale esterno (fal.ai). Serve solo a creare l\'immagine: <b>non viene conservata</b> né usata per altro.</div>'
-        +'<label style="display:flex;gap:8px;align-items:flex-start;margin:12px 0;font-size:13px;cursor:pointer"><input type="checkbox" id="pvConsent" style="margin-top:3px"> Ho letto e acconsento all\'invio della mia foto per generare l\'anteprima del look.</label>'
-        +'<button class="btn primary" id="pvConsentGo" style="width:100%;padding:12px;font-weight:800;opacity:.5" disabled>Procedi</button>';
-      const cb=$('#pvConsent'), go2=$('#pvConsentGo');
-      cb.addEventListener('change',()=>{ go2.disabled=!cb.checked; go2.style.opacity=cb.checked?'1':'.5'; });
-      go2.addEventListener('click',()=>{ sessionStorage.setItem('bv-hair-consent','1'); $('#pvGo').click(); });
-      return;
-    }
-    const useRef = (mode==='ref') && !!refImg;
-    const payload = useRef ? { image:selfie, reference:refImg, taglio:'', piega:'', colore:'' }
-                           : { image:selfie, reference:null, taglio:pick('pv_cut'), piega:pick('pv_style'), colore:pick('pv_color') };
-    const label = useRef ? 'Look dalla foto' : (combo()||'Nuovo look');
-    const rz=$('#pvResult'); rz.innerHTML='<div class="hint">Sto generando l\'anteprima…</div>';
-    try{
-      // In locale (launcher su localhost o IP di rete) l'endpoint è relativo; online (GitHub Pages)
-      // il pannello statico non ha backend → si appoggia al servizio ecommerce su Render (stessa chiave fal.ai).
-      const HAIR_API = location.hostname.endsWith('github.io') ? 'https://boosted-ecommerce.onrender.com/api/hair' : '/api/hair';
-      const r=await fetch(HAIR_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-      const d=await r.json().catch(()=>({}));
-      if(d&&d.mode==='reale'&&d.image){
-        rz.innerHTML='<img src="'+esc(d.image)+'" alt="anteprima look" style="width:100%;max-width:320px;border-radius:14px;display:block"><div class="hint" style="margin-top:6px">Anteprima AI · '+esc(label)+'</div>';
-      } else {
-        const refThumb = useRef ? '<img src="'+esc(refImg)+'" alt="rif" style="position:absolute;right:8px;top:8px;width:34%;border-radius:10px;border:2px solid #fff;box-shadow:0 6px 14px rgba(0,0,0,.5)">' : '';
-        rz.innerHTML='<div style="position:relative;max-width:320px"><img src="'+esc(selfie)+'" style="width:100%;border-radius:14px;display:block">'+refThumb+'<div style="position:absolute;left:0;right:0;bottom:0;padding:12px;background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff;border-radius:0 0 14px 14px;font-weight:700;font-size:13px">'+esc(label)+'</div></div><div class="hint" style="margin-top:6px">Anteprima demo · con l\'AI attiva qui vedrai il look generato sui tuoi capelli'+(useRef?' (copiando la foto di riferimento)':'')+'.</div>';
-      }
-    }catch(_){ rz.innerHTML='<div class="hint">Errore di rete, riprova.</div>'; }
-  });
-}
 function renderAgenda(){
   // Se è appena arrivata una prenotazione (cliente online o assistente voce), apro l'agenda
   // sul giorno di quella prenotazione così è SEMPRE visibile — anche tra schede diverse del pannello.
@@ -1366,7 +1280,7 @@ function renderReputazione(){
 }
 function renderMktCruscotto(){
   const c=mktCounts(), m=state.mkt, msgTot=(m.emailsSent||0)+(m.waSent||0);
-  const kp=$('#kpis-mkt'); if(kp) kp.innerHTML=kpi([[c.tot,'Contatti',true],[c.mail,'Con email'],[c.wa,'Con WhatsApp'],[m.campaigns.length,'Campagne inviate']]);
+  const kp=$('#kpis-mkt'); if(kp) kp.innerHTML=kpi([[c.tot,'Contatti',true],[c.mail,'Con email'],[c.wa,'Con WhatsApp'],[m.campaigns.length,'Campagne preparate']]);
   const mt=$('#mktMsgTot'); if(mt) mt.textContent=msgTot+' messaggi inviati in totale';
   const f=$('#mktFeed'); if(f) f.innerHTML=m.feed.length?m.feed.map(x=>`<div class="feedline"><div class="fi ${esc(x.ic||'lilla')}">${x.ic==='gold'?'★':x.ic==='green'?'✓':'✦'}</div><div class="ft">${x.text}</div><div class="fw">${esc(x.at?_ago(x.at):(x.when||'ora'))}</div></div>`).join(''):'<div class="empty">Aggiungi un contatto, invia una campagna o chiedi una recensione: qui compaiono gli eventi.</div>';
 }
@@ -1397,7 +1311,11 @@ function renderMktCampagne(){
   const hist=$('#mktHistory'); if(hist) hist.innerHTML=state.mkt.campaigns.length?state.mkt.campaigns.slice().reverse().map(c=>{
     const when=new Date(c.createdAt).toLocaleDateString('it-IT',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
     const tag=c.channel==='whatsapp'?'<span class="tag wa">WhatsApp</span>':c.channel==='both'?'<span class="tag mail">✉</span> <span class="tag wa">WhatsApp</span>':'<span class="tag mail">✉ email</span>';
-    return `<div class="booking"><div class="bm"><div class="nm">${esc(c.subject||(c.wa||'').slice(0,40)||'Campagna')}</div><div class="meta">${esc(when)} · ${c.sentTo} invii · ${c.opens} aperture · ${c.clicks} click</div></div><div style="display:flex;gap:5px;align-items:center">${tag}</div></div>`;
+    // ⚠️ Questa demo NON invia niente: non c'e' nessun fornitore collegato. Scrivere "N invii"
+    // faceva credere che i messaggi fossero partiti davvero (il "(demo)" stava solo nel toast, che
+    // sparisce dopo due secondi). Aperture e click sono percentuali inventate a tavolino: qui si
+    // dice, accanto al numero, che sono finti.
+    return `<div class="booking"><div class="bm"><div class="nm">${esc(c.subject||(c.wa||'').slice(0,40)||'Campagna')}</div><div class="meta">${esc(when)} · <b>non inviata</b> · ${c.sentTo} destinatari raggiungibili</div><div class="meta" style="font-size:11px;opacity:.7">Numeri di esempio: ${c.opens} aperture · ${c.clicks} click</div></div><div style="display:flex;gap:5px;align-items:center"><span class="tag" style="background:rgba(251,191,36,.16);color:#fbbf24">demo</span>${tag}</div></div>`;
   }).join(''):'<div class="empty">Nessuna campagna ancora. Componi e invia (demo).</div>';
 }
 function renderMktAnteprima(){
@@ -1431,7 +1349,7 @@ function renderMktRecensioni(){
   const pk=$('#mktRevPicker'); if(pk){ if(mktRevMode==='sel') mktPicker('#mktRevPicker',state.clients,mktRevSel,'mktrevpick','mkrevpk'); else pk.innerHTML=''; }
   const pool=mktRevPool(), n=pool.length;
   const tgt=$('#mktRevTarget'); if(tgt) tgt.innerHTML = mktRevMode==='sel'?`La richiesta va a <b>${n}</b> clienti selezionati.`:`La richiesta va a <b>tutti</b> i ${n} clienti della rubrica.`;
-  const st=$('#mktRevStats'); if(st) st.innerHTML=kpi([[state.mkt.reviews.requested,'Richieste inviate'],[state.mkt.reviews.received,'Ricevute (stima)',true],[state.rep.count,'Recensioni totali']]);
+  const st=$('#mktRevStats'); if(st) st.innerHTML=kpi([[state.mkt.reviews.requested,'Richieste preparate'],[state.mkt.reviews.received,'Ricevute (stima)',true],[state.rep.count,'Recensioni totali']]);
   const rv=$('#repReviews'); if(rv) rv.innerHTML=state.reviews.map(r=>`<div class="booking"><div class="time" style="color:var(--giallo);min-width:auto;font-size:13px">${'★'.repeat(r.stars)}</div><div class="bm"><div class="nm">${esc(r.name)} <span style="color:var(--grigio);font-weight:600">· ${esc(r.src)} · ${esc(r.when)}</span></div><div class="meta" style="color:#cdc6d8">${esc(r.text)}</div></div></div>`).join('')||'<div class="empty">Nessuna recensione.</div>';
 }
 
@@ -1823,8 +1741,8 @@ document.addEventListener('click',e=>{
   if(el=g('[data-mkrevpk]')){mktRevSel=el.dataset.mkrevpk==='all'?state.clients.map(c=>c.id):[];renderReputazione();return;}
   if(el=g('[data-mkaddc]')){const nm=($('#mkcName')||{}).value||'',em=($('#mkcEmail')||{}).value||'',ph=($('#mkcPhone')||{}).value||'';if(!nm.trim()){toast('Inserisci il nome del contatto.');return;}const up=upsertClient({name:nm.trim(),email:em.trim(),phone:ph.trim(),source:'manuale'});if($('#mkcName'))$('#mkcName').value='';if($('#mkcEmail'))$('#mkcEmail').value='';if($('#mkcPhone'))$('#mkcPhone').value='';mktLog('green',`<b>${esc(up.client.name)}</b> ${up.isNew?'aggiunto in':'aggiornato in'} rubrica`);toast(up.isNew?'Contatto aggiunto.':'Contatto già presente — aggiornato.');renderReputazione();persist();return;}
   if(el=g('[data-mkimport]')){let add=0;state.appts.forEach(a=>{if(a.status==='cancelled')return;if(!findClient({name:a.clientName,phone:a.phone},true)){upsertClient({name:a.clientName,phone:a.phone||'',source:'prenotazione'});add++;}});if(add){mktLog('green',`${add} contatti recuperati dalle prenotazioni`);toast(`↻ ${add} contatti recuperati dalle prenotazioni.`);}else toast('Nessuna nuova prenotazione da recuperare.');renderReputazione();persist();return;}
-  if(el=g('[data-mktsend]')){mktCapture();const pool=mktPool();const emailN=pool.filter(c=>c.email).length,waN=pool.filter(c=>c.phone).length;const isMail=mktCh==='email'||mktCh==='both',isWa=mktCh==='whatsapp'||mktCh==='both';const reach=(isMail?emailN:0)+(isWa?waN:0);if(!reach){toast('Nessun destinatario su questo canale.');return;}const opens=Math.round(reach*(isWa&&!isMail?0.82:0.46)),clicks=Math.round(reach*0.16);state.mkt.emailsSent+=(isMail?emailN:0);state.mkt.waSent+=(isWa?waN:0);state.mkt.campaigns.push({id:uid('cmp'),channel:mktCh,subject:mktDraft.subject||'',email:mktDraft.email||'',wa:mktDraft.wa||'',mode:mktMode,sentTo:reach,opens:opens,clicks:clicks,createdAt:new Date().toISOString()});mktLog('green',`Campagna ${mktCh==='both'?'email + WhatsApp':mktCh==='email'?'email':'WhatsApp'} inviata a <b>${reach}</b> contatti`);const msg=mktCh==='both'?`Campagna inviata a ${emailN} email + ${waN} WhatsApp (demo).`:`Campagna inviata a ${reach} contatti (demo).`;toast('📣 '+msg);persist();renderReputazione();return;}
-  if(el=g('[data-mktreview]')){const pool=mktRevPool();const n=pool.length;if(!n){toast('Nessun destinatario selezionato.');return;}state.mkt.reviews.requested+=n;mktLog('gold',`Richiesta recensione inviata a <b>${n}</b> clienti`);toast(`⭐ Richiesta recensione inviata a ${n} clienti (demo).`);persist();renderReputazione();return;}
+  if(el=g('[data-mktsend]')){mktCapture();const pool=mktPool();const emailN=pool.filter(c=>c.email).length,waN=pool.filter(c=>c.phone).length;const isMail=mktCh==='email'||mktCh==='both',isWa=mktCh==='whatsapp'||mktCh==='both';const reach=(isMail?emailN:0)+(isWa?waN:0);if(!reach){toast('Nessun destinatario su questo canale.');return;}const opens=Math.round(reach*(isWa&&!isMail?0.82:0.46)),clicks=Math.round(reach*0.16);state.mkt.emailsSent+=(isMail?emailN:0);state.mkt.waSent+=(isWa?waN:0);state.mkt.campaigns.push({id:uid('cmp'),channel:mktCh,subject:mktDraft.subject||'',email:mktDraft.email||'',wa:mktDraft.wa||'',mode:mktMode,sentTo:reach,opens:opens,clicks:clicks,createdAt:new Date().toISOString()});mktLog('lilla',`Campagna ${mktCh==='both'?'email + WhatsApp':mktCh==='email'?'email':'WhatsApp'} preparata per <b>${reach}</b> contatti — <b>non inviata</b>`);const msg=mktCh==='both'?`Campagna preparata per ${emailN} email + ${waN} WhatsApp. In questa demo non parte nessun messaggio.`:`Campagna preparata per ${reach} contatti. In questa demo non parte nessun messaggio.`;toast('📣 '+msg);persist();renderReputazione();return;}
+  if(el=g('[data-mktreview]')){const pool=mktRevPool();const n=pool.length;if(!n){toast('Nessun destinatario selezionato.');return;}state.mkt.reviews.requested+=n;mktLog('gold',`Richiesta recensione preparata per <b>${n}</b> clienti — <b>non inviata</b>`);toast(`⭐ Richiesta recensione preparata per ${n} clienti. In questa demo non parte nessun messaggio.`);persist();renderReputazione();return;}
   if(el=g('[data-mktrevsim]')){const req=state.mkt.reviews.requested;if(!req){toast('Prima chiedi qualche recensione.');return;}const target=Math.round(req*0.28),add=Math.max(0,target-state.mkt.reviews.received);if(!add){toast('Nessuna nuova recensione simulata al momento.');return;}state.mkt.reviews.received+=add;state.rep.count+=add;state.rep.month+=add;const samp=[{name:'Sofia M.',stars:5,text:'Bravissimi, colore perfetto e super puntuali!',src:'Google',when:'ora'},{name:'Elena R.',stars:5,text:'Taglio impeccabile e prenotazione al telefono comodissima.',src:'Google',when:'ora'}];state.reviews.unshift(samp[Math.min(samp.length-1,Math.max(0,add-1))]);mktLog('gold',`+${add} recensioni ricevute (stima ~28%)`);toast(`⭐ +${add} recensioni ricevute (demo).`);persist();renderReputazione();return;}
   // listino
   if(el=g('[data-editsvc]')){openSvc(el.dataset.editsvc);return;}
@@ -1864,7 +1782,7 @@ $('#importFile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)r
 // ===================== KIOSK (schermo singolo) + TOUR guidato =====================
 const Q=new URLSearchParams(location.search);
 const VIEW_IDS=VIEWS.map(v=>v[0]);
-const VIEW_ALIAS={agenda:'agenda',calendario:'agenda',assistente:'assistente',voce:'assistente',poltrone:'poltrone',chairs:'poltrone',cassa:'cassa',pos:'cassa',cliente:'cliente',prenota:'cliente',prova:'prova',look:'prova',listino:'report',clienti:'clienti',operatori:'operatori',report:'report',gestionale:'report',recensioni:'reputazione',reputazione:'reputazione'};
+const VIEW_ALIAS={agenda:'agenda',calendario:'agenda',assistente:'assistente',voce:'assistente',poltrone:'poltrone',chairs:'poltrone',cassa:'cassa',pos:'cassa',cliente:'cliente',prenota:'cliente',listino:'report',clienti:'clienti',operatori:'operatori',report:'report',gestionale:'report',recensioni:'reputazione',reputazione:'reputazione'};
 function resolveView(v){ if(!v)return null; v=v.toLowerCase(); v=VIEW_ALIAS[v]||v; return VIEW_IDS.includes(v)?v:null; }
 function applyKiosk(){
   const _raw=(Q.get('vista')||Q.get('view')||'').toLowerCase();
@@ -1874,7 +1792,7 @@ function applyKiosk(){
   if(_raw==='recensioni')mktTab='recensioni';
   if(Q.get('kiosk')==='1'||Q.get('kiosk')==='true'){
     document.body.classList.add('kiosk');
-    const lab={cliente:'📱 Cliente · prenota',agenda:'📅 Agenda',assistente:'🎙 Assistente',poltrone:'💈 Poltrone',cassa:'🧾 Cassa · POS',clienti:'🧑 Clienti',operatori:'✂️ Operatori',report:'📊 Gestionale',reputazione:'📣 Marketing',prova:'✨ Prova look',impostazioni:'⚙️ Impostazioni',home:'Console'}[view]||'Schermo';
+    const lab={cliente:'📱 Cliente · prenota',agenda:'📅 Agenda',assistente:'🎙 Assistente',poltrone:'💈 Poltrone',cassa:'🧾 Cassa · POS',clienti:'🧑 Clienti',operatori:'✂️ Operatori',report:'📊 Gestionale',reputazione:'📣 Marketing',impostazioni:'⚙️ Impostazioni',home:'Console'}[view]||'Schermo';
     const t=$('#kioskTag'); if(t){t.textContent=lab;t.style.display='';}
   }
 }
