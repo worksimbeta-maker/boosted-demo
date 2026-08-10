@@ -639,6 +639,90 @@ a:hover{text-decoration:underline}
   animation:tour-bounce .7s ease-in-out infinite alternate;
 }
 @keyframes tour-bounce{from{transform:translateY(0)}to{transform:translateY(-4px)}}
+
+/* ============================================================
+   SCONTRINO DI SERVIZIO (non fiscale)
+   Volutamente su carta chiara e a caratteri monospaziati:
+   deve leggersi come un conto stampato, non come un pannello dell'app.
+   ============================================================ */
+.rcpt-back{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(4,5,6,.78);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  display:flex;align-items:center;justify-content:center;padding:24px;
+  animation:rcptFade .25s ease
+}
+/* Senza questa riga il display:flex qui sopra batte l'attributo hidden
+   (che vale meno) e lo scontrino resterebbe a schermo dall'avvio. */
+.rcpt-back[hidden]{display:none}
+@keyframes rcptFade{from{opacity:0}}
+
+.rcpt{
+  width:100%;max-width:330px;position:relative;
+  filter:drop-shadow(0 26px 50px rgba(0,0,0,.6));
+  animation:rcptIn .42s cubic-bezier(.34,1.4,.64,1);
+  max-height:88vh;display:flex;flex-direction:column
+}
+@keyframes rcptIn{from{opacity:0;transform:translateY(26px) scale(.95)}}
+
+.rcpt-strip{height:7px;background:linear-gradient(90deg,var(--lilla),var(--lilla-dim));
+  border-radius:3px 3px 0 0}
+
+.rcpt-body{
+  background:#f4f1ea;color:#1a1a1a;padding:22px 22px 20px;overflow-y:auto;
+  font-family:ui-monospace,SFMono-Regular,Menlo,"Courier New",monospace
+}
+
+.rcpt-head{text-align:center}
+.rcpt-shop{font-size:15px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.rcpt-meta{font-size:11px;color:#6a6a6a;margin-top:3px}
+.rcpt-nonfisc{
+  display:inline-block;margin-top:9px;padding:3px 9px;border:1px dashed #9a9a9a;
+  font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:#5a5a5a
+}
+
+.rcpt-sep{border-top:1px dashed #b9b5ab;margin:13px 0}
+
+.rcpt-row{display:flex;justify-content:space-between;gap:10px;font-size:12px}
+.rcpt-row-top{color:#3a3a3a}
+
+.rcpt-line{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;
+  padding:4px 0;align-items:baseline}
+.rcpt-line-name{flex:1}
+.rcpt-line-qty{color:#6a6a6a;margin-right:8px}
+.rcpt-line-cook{display:block;font-size:10.5px;color:#7a7a7a;font-style:italic}
+
+.rcpt-tot{display:flex;justify-content:space-between;align-items:baseline;
+  font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.rcpt-tot b{font-size:21px}
+
+.rcpt-note{
+  margin-top:14px;padding:10px 12px;background:#e8e4da;border-left:3px solid var(--lilla-dim);
+  font-size:10.5px;line-height:1.5;color:#4a4a4a
+}
+
+.rcpt-actions{display:flex;gap:9px;margin-top:18px}
+.rcpt-btn,.rcpt-btn-ghost{
+  flex:1;padding:12px 10px;border-radius:9px;border:0;cursor:pointer;
+  font-family:inherit;font-size:11.5px;font-weight:700;min-height:44px;
+  white-space:nowrap;                 /* senza questo "Battuto in cassa ✓" va a capo */
+  transition:transform .15s ease,filter .15s ease
+}
+.rcpt-btn{background:#1a1a1a;color:#f4f1ea}
+.rcpt-btn:hover{transform:translateY(-2px);filter:brightness(1.25)}
+.rcpt-btn-ghost{background:transparent;color:#6a6a6a;border:1px solid #c3bfb5}
+.rcpt-btn-ghost:hover{background:#e8e4da}
+
+/* bordo inferiore strappato, come la carta tagliata */
+.rcpt-zigzag{
+  height:11px;
+  background:linear-gradient(-45deg,transparent 33.4%,#f4f1ea 33.4%) 0 0/13px 22px repeat-x,
+             linear-gradient(45deg,transparent 33.4%,#f4f1ea 33.4%) 0 0/13px 22px repeat-x
+}
+
+@media (max-width:420px){
+  .rcpt{max-width:100%}
+  .rcpt-body{padding:18px 16px 16px}
+}
 </style>
 </head>
 <body>
@@ -674,7 +758,9 @@ a:hover{text-decoration:underline}
 
 <!-- ========== GUIDA ========== -->
 <div class="guide-wrap">
-  <details class="guide" open>
+  <!-- chiuso di default: all'apertura deve vedersi subito la sala,
+       non mezzo schermo di istruzioni. Resta a un clic di distanza. -->
+  <details class="guide">
     <summary>
       <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#C9A9E9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 11V8M8 5h.01"/></svg>
       Come usare questa demo
@@ -889,6 +975,57 @@ a:hover{text-decoration:underline}
 
 </div><!-- /stage -->
 
+<!-- ==========================================================
+     SCONTRINO DI SERVIZIO (non fiscale)
+     Alla chiusura del tavolo non si va dritti all'incasso:
+     esce il conto da battere in cassa, come nella realta'.
+     L'incasso si aggiorna solo dopo la conferma.
+     ========================================================== -->
+<div class="rcpt-back" id="rcptBack" hidden>
+  <div class="rcpt" role="dialog" aria-modal="true" aria-labelledby="rcptTitle">
+
+    <div class="rcpt-strip"></div>
+
+    <div class="rcpt-body">
+      <div class="rcpt-head">
+        <div class="rcpt-shop">Trattoria da Marco</div>
+        <div class="rcpt-meta">Via Roma 14 · Arezzo</div>
+        <div class="rcpt-nonfisc">Documento di servizio — non fiscale</div>
+      </div>
+
+      <div class="rcpt-sep"></div>
+
+      <div class="rcpt-row rcpt-row-top">
+        <span id="rcptTitle">Conto <b id="rcptTable">Tavolo 3</b></span>
+        <span id="rcptTime">—</span>
+      </div>
+
+      <div class="rcpt-sep"></div>
+
+      <div id="rcptItems"></div>
+
+      <div class="rcpt-sep"></div>
+
+      <div class="rcpt-tot">
+        <span>Da battere in cassa</span>
+        <b id="rcptTotal">€ 0,00</b>
+      </div>
+
+      <div class="rcpt-note">
+        Battilo sul registratore di cassa e consegna lo scontrino fiscale al cliente.
+        Questo foglio serve solo a te.
+      </div>
+
+      <div class="rcpt-actions">
+        <button class="rcpt-btn-ghost" onclick="closeReceipt(false)">Annulla</button>
+        <button class="rcpt-btn" onclick="closeReceipt(true)">Battuto in cassa ✓</button>
+      </div>
+    </div>
+
+    <div class="rcpt-zigzag"></div>
+  </div>
+</div>
+
 <script>
 /* ============================================================
    STATO DEMO — tutto in memoria, zero backend
@@ -912,23 +1049,23 @@ const COOK_OPTIONS = ['Al sangue','Media','Ben cotta'];
 const COOK_DEFAULT = 'Media';
 
 const TABLES = [
-  { id:1, name:'Tavolo 1', state:'open' },
+  { id:1, name:'Tavolo 1', state:'closed' },
   { id:2, name:'Tavolo 2', state:'closed' },
   { id:3, name:'Tavolo 3', state:'closed' },
-  { id:4, name:'Tavolo 4', state:'open' },
+  { id:4, name:'Tavolo 4', state:'closed' },
   { id:5, name:'Tavolo 5', state:'closed' },
   { id:6, name:'Tavolo 6', state:'closed' },
   { id:7, name:'Tavolo 7', state:'closed' },
   { id:8, name:'Tavolo 8', state:'closed' },
 ];
 
-// Ordini preesistenti (Tavolo 1 e 4 già aperti)
-const ORDERS = [
-  { id:'ord-pre-1', tableId:1, tableName:'Tavolo 1', status:'preparing', items:[{name:'Tagliata di manzo',qty:2,price:18,cook:'Al sangue'},{name:'Calice di Chianti',qty:2,price:5}], time:'20:14' },
-  { id:'ord-pre-2', tableId:4, tableName:'Tavolo 4', status:'ready',     items:[{name:'Pici cacio e pepe',qty:1,price:11},{name:'Ravioli ricotta e spinaci',qty:1,price:12}], time:'20:09' },
-];
+// Si parte a servizio vuoto: nessun tavolo aperto, nessuna comanda in corso.
+// Chi apre la demo deve trovare la sala pulita e costruire lui il giro.
+const ORDERS = [];
 
-const LSKEY='boosted-demo-ordiniqr-v1';
+// v2: la chiave e' cambiata di proposito, cosi' chi aveva gia' usato la demo
+// non si ritrova lo stato vecchio (coi tavoli aperti) ripescato da localStorage.
+const LSKEY='boosted-demo-ordiniqr-v2';
 function loadState(){try{var s=localStorage.getItem(LSKEY);return s?JSON.parse(s):null;}catch(e){return null;}}
 function persistState(){try{localStorage.setItem(LSKEY,JSON.stringify({orders:state.orders,tables:state.tables,sales:state.sales,nextOrderId:state.nextOrderId}));}catch(e){}}
 var _saved = loadState();
@@ -1212,26 +1349,100 @@ function onSendOrder(){
   persistState();
 }
 
+/*
+ * Chiusura del tavolo.
+ * Non si passa piu' dritti all'incasso: prima esce lo scontrino di servizio
+ * (non fiscale) con il totale da battere in cassa. Il giro si chiude — e il
+ * gestionale si aggiorna — solo quando lo staff conferma di aver battuto.
+ * Se annulla, il tavolo resta aperto e non viene toccato niente.
+ */
+var pendingClose = null;
+
 function onCloseTable(tableId){
   tableId = tableId || 3;            // il tour e il flusso QR usano il Tavolo 3
   const tOrders = state.orders.filter(o=>o.tableId===tableId && o.status!=='served');
   const allItems = [];
-  tOrders.forEach(o=>{ o.status='served'; allItems.push(...o.items); });
-  const t = state.tables.find(x=>x.id===tableId);
-  if(t) t.state = 'closed';
-  if(tableId===3) showView('viewClosed');   // il telefono mostra "chiuso" solo per il tavolo del flusso
-  renderTables();
-  renderStaffOrders();
-  renderKds();
-  if(allItems.length) updateSales(allItems);
-  persistState();
+  tOrders.forEach(o=>{ allItems.push(...o.items); });
+
+  if(!allItems.length){
+    // niente da incassare: il tavolo si chiude e basta
+    const t0 = state.tables.find(x=>x.id===tableId);
+    if(t0) t0.state = 'closed';
+    if(tableId===3) showView('viewClosed');
+    renderTables(); renderStaffOrders(); renderKds(); persistState();
+    return;
+  }
+
+  pendingClose = { tableId: tableId, orders: tOrders, items: allItems };
+  showReceipt(tableId, allItems);
 }
+
+/* --- scontrino --- */
+
+function showReceipt(tableId, items){
+  const t = state.tables.find(x=>x.id===tableId);
+  document.getElementById('rcptTable').textContent = t ? t.name : ('Tavolo ' + tableId);
+  document.getElementById('rcptTime').textContent  = timeNow();
+
+  // raggruppo per nome+cottura, cosi' due righe uguali non compaiono separate
+  const righe = {};
+  items.forEach(function(i){
+    const k = i.name + '|' + (i.cook || '');
+    if(!righe[k]) righe[k] = { name:i.name, cook:i.cook, qty:0, price:i.price };
+    righe[k].qty += i.qty;
+  });
+
+  let tot = 0;
+  document.getElementById('rcptItems').innerHTML = Object.keys(righe).map(function(k){
+    const r = righe[k];
+    const sub = r.qty * r.price;
+    tot += sub;
+    return '<div class="rcpt-line">'
+      +   '<span class="rcpt-line-name"><span class="rcpt-line-qty">' + r.qty + '×</span>' + r.name
+      +     (r.cook ? '<span class="rcpt-line-cook">' + r.cook + '</span>' : '')
+      +   '</span>'
+      +   '<span>' + fmt(sub) + '</span>'
+      + '</div>';
+  }).join('');
+
+  document.getElementById('rcptTotal').textContent = fmt(tot);
+
+  const back = document.getElementById('rcptBack');
+  back.hidden = false;
+  back.querySelector('.rcpt-btn').focus();
+}
+
+function closeReceipt(confermato){
+  document.getElementById('rcptBack').hidden = true;
+  if(!pendingClose) return;
+
+  if(confermato){
+    const p = pendingClose;
+    p.orders.forEach(function(o){ o.status = 'served'; });
+    const t = state.tables.find(function(x){ return x.id === p.tableId; });
+    if(t) t.state = 'closed';
+    if(p.tableId === 3) showView('viewClosed');
+    renderTables(); renderStaffOrders(); renderKds();
+    updateSales(p.items);              // l'incasso si muove solo adesso
+    persistState();
+  }
+  pendingClose = null;
+}
+
+// Esc chiude lo scontrino senza incassare
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape' && !document.getElementById('rcptBack').hidden) closeReceipt(false);
+});
 
 /* ============================================================
    RESET
    ============================================================ */
 function resetDemo(){
   try{localStorage.removeItem(LSKEY);}catch(e){}
+  // se il reset arriva con lo scontrino a schermo, va chiuso anche quello
+  var _rb = document.getElementById('rcptBack');
+  if(_rb) _rb.hidden = true;
+  pendingClose = null;
   state.phase='idle';
   state.cart={};
   state.cook={};
