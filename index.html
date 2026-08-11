@@ -33,11 +33,13 @@ color:var(--gray);background:transparent;border:1px solid transparent;border-bot
 cursor:pointer;transition:.15s}
 .tab:hover{color:var(--white)}
 .tab.on{color:var(--white);background:linear-gradient(180deg,rgba(201,169,233,.12),var(--black) 60%);border-color:var(--border);box-shadow:inset 0 2px 0 0 var(--lilac)}
-.tab .led{width:8px;height:8px;border-radius:50%;background:var(--gray);transition:.2s}
-.tab.on .led{background:var(--gray)}
-.tab.ready .led{background:var(--green);box-shadow:0 0 0 3px rgba(64,200,120,.16)}
-.tab.boot .led{background:var(--lilac);animation:pulse 1s infinite}
-@keyframes pulse{50%{opacity:.35}}
+.tab .led{width:8px;height:8px;border-radius:50%;background:var(--gray);transition:.2s;flex:none}
+/* Il verde significa "ha risposto davvero", non "l'indirizzo e' scritto nel codice". */
+.tab.s-pronto  .led{background:var(--green);box-shadow:0 0 0 3px rgba(64,200,120,.16)}
+.tab.s-verifica .led{background:var(--gray);animation:pulse 1.1s infinite}
+.tab.s-sveglia .led{background:var(--lilac);animation:pulse .9s infinite}
+.tab.s-giu     .led{background:#6b5560;box-shadow:0 0 0 3px rgba(255,255,255,.04)}
+@keyframes pulse{50%{opacity:.3}}
 
 /* assistente al telefono: numero + switch */
 .asst-wrap{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-right:6px;padding:3px 8px;border:1px solid var(--soft);border-radius:999px;background:rgba(255,255,255,.03)}
@@ -84,7 +86,10 @@ background:var(--black);color:var(--gray);text-align:center;padding:30px}
   <div class="toolbar" id="toolbar"></div>
 
   <div class="stage">
-    <iframe id="view" allow="camera; microphone; clipboard-write; fullscreen" referrerpolicy="no-referrer"></iframe>
+    <!-- Niente "microphone": nessuna demo lo usa (verificato), e concedere il microfono
+         a contenuto incorniciato senza motivo e' una superficie in piu' da giustificare.
+         La fotocamera resta: serve allo scanner dei codici a barre. -->
+    <iframe id="view" allow="camera; clipboard-write; fullscreen" referrerpolicy="no-referrer"></iframe>
     <div class="over show" id="over">
       <div class="spin" id="spin"></div>
       <b id="over-t">Carico…</b>
@@ -154,11 +159,28 @@ function screensOf(d){
   return d.screens;
 }
 
+/* STATO REALE DEI SERVIZI.
+   Prima il pallino era verde SEMPRE: bastava che l'URL fosse scritto qui dentro,
+   nessuno controllava che il servizio rispondesse davvero. Davanti a un cliente
+   significava dichiarare "online" un gestionale che poteva essere spento.
+   Ora il verde si accende solo dopo una risposta vera. */
+var STATO = {};   // id -> 'verifica' | 'sveglia' | 'pronto' | 'giu'
+function statoDi(d){
+  // L'ORDINE CONTA. Prima mettevo per primi i file statici, ma "Ordini al tavolo" ha
+  // SIA un backend live SIA una demo statica di scorta: risultava verde comunque, cioe'
+  // esattamente il claim falso che volevo togliere. Se c'e' un backend, e' lui a decidere,
+  // perche' e' lui quello che il pannello carica davvero.
+  if(liveUrl(d)) return STATO[d.id] || 'verifica';
+  if(d.intro || d.static || d.demo || d.presentation) return 'pronto'; // file qui accanto: ci sono di sicuro
+  return 'giu';
+}
 function renderTabs(){
   tabsEl.innerHTML = TABS.map(function(d){
-    var rdy = d.intro || d.static || liveUrl(d) || d.demo || d.presentation || (d.screens && d.screens.length);
-    var cls='tab'+(d.id===active?' on':'')+(rdy?' ready':' boot');
-    return '<button class="'+cls+'" onclick="selectService(\''+d.id+'\')"><span class="led"></span>'+d.name+'</button>';
+    var st = statoDi(d);
+    var titolo = { pronto:'servizio raggiungibile', verifica:'sto controllando…',
+                   sveglia:'si sta accendendo (server gratuito)', giu:'non raggiungibile' }[st];
+    var cls='tab'+(d.id===active?' on':'')+' s-'+st;
+    return '<button class="'+cls+'" onclick="selectService(\''+d.id+'\')" title="'+d.name+' — '+titolo+'"><span class="led"></span>'+d.name+'</button>';
   }).join('');
 }
 /* ---- Assistente al telefono: numero da chiamare + switch ristorante/salone ----
@@ -246,7 +268,7 @@ function loadView(){
   if(s && s.demo){ setSrc(s.demo, 'Carico la demo…'); return; }
   if(s && s.pres){ setSrc(s.pres, 'Carico la presentazione…'); return; }
   var base=liveUrl(d);
-  if(base){ setSrc(base+s.path, 'Carico la demo live…'); return; }
+  if(base){ setSrc(base+s.path, 'Carico la demo live…', true); return; }
   // nessun backend e nessuna demo: messaggio nello stile del pannello
   view.removeAttribute('src');
   spin.style.display='none';
@@ -254,25 +276,68 @@ function loadView(){
   overS.textContent='Il gestionale completo di questo servizio sta per andare online.';
   over.classList.add('show');
 }
-function setSrc(url, loadingMsg){
+/* ATTESA ONESTA.
+   Prima, se il server ci metteva un minuto a rispondere, girava una rotellina muta
+   e chi guardava pensava che fosse rotto; se non rispondeva affatto, la rotellina
+   girava per sempre. Ora dopo qualche secondo si spiega COSA sta succedendo, e dopo
+   90 secondi si smette di far finta e si offre di riprovare. */
+var attese=[];
+function pulisciAttese(){ attese.forEach(clearTimeout); attese=[]; }
+function setSrc(url, loadingMsg, live){
+  pulisciAttese();
   spin.style.display=''; overT.textContent=loadingMsg||'Carico…'; overS.textContent=''; over.classList.add('show');
-  if(view.getAttribute('src')!==url){ view.setAttribute('src',url); } else { over.classList.remove('show'); }
+  if(live){
+    attese.push(setTimeout(function(){
+      overS.textContent='Il server si sta accendendo. È un piano gratuito: si spegne quando resta inutilizzato, e la prima apertura richiede circa 40 secondi. Le successive sono immediate.';
+    }, 3500));
+    attese.push(setTimeout(function(){
+      spin.style.display='none';
+      overT.textContent='Il server non risponde';
+      overS.innerHTML='Non è riuscito ad accendersi in 90 secondi.<br><button class="act" style="margin-top:14px" onclick="reloadView()">↻ Riprova</button>';
+    }, 90000));
+  }
+  if(view.getAttribute('src')!==url){ view.setAttribute('src',url); } else { pulisciAttese(); over.classList.remove('show'); }
 }
-view.addEventListener('load', function(){ if(view.getAttribute('src')) over.classList.remove('show'); });
+view.addEventListener('load', function(){ if(view.getAttribute('src')){ pulisciAttese(); over.classList.remove('show'); } });
 
-function selectService(id){ active=id; if(page[active]==null)page[active]=0; renderTabs(); renderToolbar(); loadView(); leggiVenue(); }
+/* PRE-RISCALDAMENTO. I due gestionali stanno su un piano gratuito: dopo un po' di
+   inattività il server si spegne, e la prima richiesta impiega ~50 secondi a
+   risvegliarlo. Davanti a un cliente sono cinquanta secondi di schermo fermo.
+   Appena si apre il pannello li chiamiamo: mentre il cliente guarda la
+   presentazione, i server si accendono in sottofondo e al clic sono già pronti.
+   La stessa chiamata dice anche se il servizio risponde davvero → colore del pallino. */
+function controllaServizio(d){
+  var base=liveUrl(d); if(!base) return;
+  STATO[d.id]='verifica'; renderTabs();
+  var lento=setTimeout(function(){ if(STATO[d.id]==='verifica'){ STATO[d.id]='sveglia'; renderTabs(); } }, 2500);
+  var ctrl = (typeof AbortController!=='undefined') ? new AbortController() : null;
+  var stop=setTimeout(function(){ if(ctrl) ctrl.abort(); }, 90000);
+  fetch(base+'/api/config', ctrl?{cache:'no-store',signal:ctrl.signal}:{cache:'no-store'})
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(){ STATO[d.id]='pronto'; }, function(){ STATO[d.id]='giu'; })
+    .then(function(){ clearTimeout(lento); clearTimeout(stop); renderTabs(); });
+}
+function svegliaTutti(){ TABS.forEach(function(d){ if(liveUrl(d)) controllaServizio(d); }); }
+
+function selectService(id){ active=id; if(page[active]==null)page[active]=0; renderTabs(); renderToolbar(); loadView(); leggiVenue();
+  // se risultava spento, ricontrolla: potrebbe essersi acceso nel frattempo
+  var sv=svc(id); if(sv && liveUrl(sv) && STATO[id]==='giu') controllaServizio(sv); }
 function selectPage(i){ page[active]=i; renderToolbar(); loadView(); }
 function reloadView(){ var s=view.getAttribute('src'); if(s){ over.classList.add('show'); overT.textContent='Carico…'; view.setAttribute('src', s); } }
 
 renderTabs(); renderToolbar(); loadView();
+svegliaTutti();   // i server gratuiti si accendono ORA, mentre il cliente guarda la presentazione
 
 /* Avviso cookie onesto: qui usiamo solo spazio di sessione tecnico (nessun cookie di
    profilazione o di terze parti). Mostrato una volta, memorizza la conferma. */
 (function(){
   try{ if(localStorage.getItem('bv-cookie-ok'))return; }catch(e){}
   var b=document.createElement('div');
-  b.style.cssText='position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;max-width:560px;margin:0 auto;background:#171922;border:1px solid rgba(201,169,233,.22);border-radius:14px;padding:14px 16px;box-shadow:0 20px 60px -20px rgba(0,0,0,.8);font-size:13px;color:#d7dae0;display:flex;gap:12px;align-items:center;flex-wrap:wrap';
-  b.innerHTML='<span style="flex:1;min-width:200px">🔒 Usiamo solo cookie tecnici necessari al funzionamento. Nessuna profilazione, nessun cookie di terze parti. <a href="privacy.html" style="color:#C9A9E9">Informativa privacy</a>.</span><button id="ckok" style="font-family:inherit;font-weight:700;font-size:13px;color:#08090A;background:linear-gradient(150deg,#C9A9E9,#8B6FB8);border:0;border-radius:9px;padding:9px 16px;cursor:pointer">Ho capito</button>';
+  // In FLUSSO, non sovrapposto: prima era fissato in basso al centro e copriva
+  // i comandi della presentazione (play/pausa e avanzamento). Ora e' l'ultima
+  // riga della colonna: lo stage si accorcia di qualche pixel e non nasconde nulla.
+  b.style.cssText='flex:none;display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:#171922;border-top:1px solid rgba(201,169,233,.22);padding:11px 16px;font-size:12.5px;color:#d7dae0';
+  b.innerHTML='<span style="flex:1;min-width:200px">🔒 Usiamo solo cookie tecnici necessari al funzionamento. Nessuna profilazione, nessun cookie di terze parti. <a href="privacy.html" style="color:#C9A9E9">Informativa privacy</a>.</span><button id="ckok" style="font-family:inherit;font-weight:700;font-size:13px;color:#08090A;background:linear-gradient(150deg,#C9A9E9,#8B6FB8);border:0;border-radius:9px;padding:8px 15px;cursor:pointer;white-space:nowrap">Ho capito</button>';
   document.body.appendChild(b);
   b.querySelector('#ckok').onclick=function(){ try{localStorage.setItem('bv-cookie-ok','1');}catch(e){} b.remove(); };
 })();
