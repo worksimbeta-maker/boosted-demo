@@ -70,6 +70,15 @@ padding:8px 13px;border-radius:9px;cursor:pointer;transition:.15s;white-space:no
 .sub small{opacity:.7;font-weight:500;margin-left:5px}
 .sub.on small{color:#3a2b50;opacity:.85}
 .toolbar .sp{flex:1}
+/* ⚙️ (20/08) LA META' INVISIBILE DEL PRODOTTO. Le schermate raccontano cosa si apre; questa
+   riga racconta cosa il sistema fa DA SOLO — il bot che prenota, il promemoria, il buono che
+   matura, la recensione chiesta il giorno dopo. Chi guarda solo le schermate vede un
+   gestionale, non un sistema che lavora anche quando il locale e' chiuso.
+   `flex-basis:100%` la manda a capo dentro la barra, che ha gia' flex-wrap: nessun layout
+   nuovo da mantenere. */
+.auto{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:3px;padding-top:10px;border-top:1px solid var(--soft)}
+.auto b{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gray);margin-right:2px}
+.auto span{font-size:12px;line-height:1.35;color:var(--gray);background:rgba(255,255,255,.04);border:1px solid var(--soft);border-radius:999px;padding:4px 10px}
 .act{font-family:inherit;font-size:12.5px;font-weight:700;color:var(--white);background:var(--surface2);border:1px solid var(--border);
 padding:8px 13px;border-radius:9px;cursor:pointer;transition:.15s;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
 .act:hover{background:#1e2030}
@@ -151,11 +160,25 @@ var DEMOS = [
       { label:'Titolare',        path:'/gestionale',  hint:'incassi e magazzino' },
       { label:'Marketing',       path:'/marketing',   hint:'email + WhatsApp' },
   ]},
-  { id:'qr', name:'Ordini al tavolo · QR', live:'qr', demo:'boosted-ordini-qr.html', presentation:'Presentazione-Ordini-QR.html', screens:[
+  { id:'qr', name:'Ordini al tavolo · QR', live:'qr', demo:'boosted-ordini-qr.html', presentation:'Presentazione-Ordini-QR.html',
+    // ⚙️ (20/08) Quello che il sistema fa SENZA che nessuno apra una pagina. Sta scritto qui
+    //    perche' era la meta' invisibile del prodotto: un ristoratore che guarda solo le
+    //    schermate vede un gestionale, non un sistema che lavora anche di notte.
+    auto:[
+      'Prende prenotazioni e ordini su WhatsApp, da solo',
+      'Manda il promemoria il giorno prima e libera il tavolo se disdicono',
+      'Avvisa quando l\'ordine è pronto o parte col fattorino',
+      'Alla 4ª visita fa maturare un buono, e lo scala dal conto di quel tavolo',
+      'Chiede la recensione il giorno dopo, e richiama chi non torna da mesi',
+    ],
+    screens:[
       { label:'Sito prenotazioni', path:'/demo',  hint:'lato cliente · prenota', mobile:true },
-      { label:'Sala / Staff', path:'/staff',      hint:'sala e comande' },
+      { label:'Ordina & Ritira', path:'/asporto', hint:'ordini da casa: ritiro al banco o consegna a domicilio', mobile:true },
+      { label:'Registro allergeni', path:'/allergeni', hint:'l\'obbligo di legge, sempre aggiornato', mobile:true },
+      { label:'Sala / Staff', path:'/staff',      hint:'sala, comande e buono fedeltà sul conto' },
       { label:'Cucina (KDS)', path:'/kds',        hint:'schermo comande' },
       { label:'Cameriere',    path:'/cameriere',  hint:'ordini dal telefono', mobile:true },
+      { label:'Console titolare', path:'/console', hint:'tutto quello che serve a decidere, su una schermata sola' },
       { label:'Titolare',     path:'/gestionale', hint:'incassi e listino' },
       { label:'Assistente',   path:'/assistente', hint:'chiamate + messaggi' },
       { label:'Marketing',    path:'/marketing',  hint:'email + WhatsApp' },
@@ -281,7 +304,16 @@ function renderToolbar(){
     + '<div class="sp"></div>'
     + (d.id==='qr' ? assistenteHTML() : '')
     + '<button class="act" onclick="reloadView()">↻ Ricarica</button>'
-    + '<a class="act" href="'+full+'" target="_blank" rel="noopener">↗ A tutto schermo</a>';
+    + '<a class="act" href="'+full+'" target="_blank" rel="noopener">↗ A tutto schermo</a>'
+    + (d.auto && d.auto.length ? autoHTML(d.auto) : '');
+}
+
+/* La riga «funziona anche da solo»: si disegna solo se il servizio la dichiara (campo `auto`).
+   Niente promesse in piu' di quelle che le demo mantengono davvero — stessa regola dei meta
+   tag di anteprima qui sopra. */
+function autoHTML(a){
+  return '<div class="auto"><b>Funziona anche da solo</b>'
+    + a.map(function(x){ return '<span>' + x + '</span>'; }).join('') + '</div>';
 }
 
 function loadView(){
