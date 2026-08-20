@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prove — la console del salone</title>
+<meta name="theme-color" content="#08090A">
+<meta name="robots" content="noindex,nofollow">
+<style>
+/* Boosted — nero #08090A, lilla #C9A9E9, Inter. Regola 70-20-10: il lilla è raro.
+   Pagina autonoma: la demo del salone si apre col doppio clic, senza server, quindi qui
+   dentro non si tira niente da fuori. */
+:root{--nero:#08090A;--sup1:#0F1011;--sup2:#16181B;--sup3:#1F2126;--linea:#2A2D33;
+  --bianco:#F7F8F8;--muto:#8A8F98;--debole:#5A5F68;--lilla:#C9A9E9;--viola:#8B6FB8;
+  --ok:#5DCAA5;--attesa:#EF9F27;--rosso:#E24B4A;--r:13px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--nero);color:var(--bianco);font-family:Inter,-apple-system,'Segoe UI',system-ui,sans-serif;
+  font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;padding:0 0 70px}
+.wrap{max-width:1000px;margin:0 auto;padding:0 22px}
+.top{padding:48px 0 30px;border-bottom:1px solid var(--linea);margin-bottom:34px}
+.marchio{display:flex;align-items:center;gap:12px;margin-bottom:28px}
+.marchio svg{width:34px;height:34px}
+.marchio b{font-size:15px;font-weight:700;letter-spacing:-.02em;display:block;line-height:1.15}
+.marchio span{font-size:13px;color:var(--lilla)}
+h1{font-size:clamp(27px,4.6vw,40px);font-weight:800;letter-spacing:-.03em;line-height:1.1;margin-bottom:14px}
+h1 em{font-style:normal;background:linear-gradient(118deg,#8B6FB8,#C9A9E9,#E8B7D4,#F5E6FF);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{color:var(--muto);max-width:66ch;line-height:1.65}
+.lead b{color:var(--bianco);font-weight:600}
+.apri{background:var(--sup1);border:1px solid var(--linea);border-left:3px solid var(--lilla);
+  border-radius:var(--r);padding:17px 20px;margin:26px 0 0}
+.apri .k{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--muto);font-weight:700;margin-bottom:7px}
+.apri code{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;background:var(--sup3);
+  padding:3px 7px;border-radius:5px;color:#DFC9F0;word-break:break-all}
+.pin{display:inline-flex;gap:7px;align-items:center;background:var(--sup3);border-radius:999px;
+  padding:5px 13px;font-size:13px;font-weight:600;margin:9px 9px 0 0}
+.pin b{color:var(--lilla);font-variant-numeric:tabular-nums}
+section{margin:0 0 44px;scroll-margin-top:16px}
+h2{font-size:21px;font-weight:800;letter-spacing:-.02em;margin:0 0 5px;display:flex;align-items:baseline;gap:11px}
+h2 .n{font-size:12px;font-weight:700;color:var(--lilla);font-variant-numeric:tabular-nums;letter-spacing:.06em}
+h2+.sotto{color:var(--muto);margin-bottom:16px;max-width:70ch}
+.tab{overflow-x:auto;border:1px solid var(--linea);border-radius:var(--r)}
+table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:640px}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muto);
+  font-weight:700;padding:11px 14px;background:var(--sup2);border-bottom:1px solid var(--linea);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--linea);vertical-align:top;line-height:1.5}
+tr:last-child td{border-bottom:0}
+td:first-child{color:var(--muto);white-space:nowrap;font-variant-numeric:tabular-nums}
+.att{font-weight:600}
+.mono{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;background:var(--sup3);
+  padding:2px 6px;border-radius:5px;color:#DFC9F0}
+.nota{border-radius:var(--r);padding:15px 19px;margin:16px 0;line-height:1.6;font-size:14px;border:1px solid}
+.nota.rossa{background:rgba(226,75,74,.07);border-color:rgba(226,75,74,.28)}
+.nota.lilla{background:rgba(201,169,233,.06);border-color:rgba(201,169,233,.26)}
+.nota .t{font-weight:700;display:block;margin-bottom:4px}
+.nota.rossa .t{color:#F0706D}.nota.lilla .t{color:var(--lilla)}
+.piede{border-top:1px solid var(--linea);margin-top:48px;padding-top:22px;color:var(--debole);font-size:13px;line-height:1.7}
+.piede b{color:var(--lilla)}
+@media print{body{background:#fff;color:#000}th{background:#f2f2f2;color:#333}
+  .apri,.nota{background:#fff;border-color:#ccc}h1 em{color:#5E4485;-webkit-text-fill-color:#5E4485}
+  section{page-break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="marchio">
+    <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs><linearGradient id="g" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#C9A9E9"/><stop offset="100%" stop-color="#8B6FB8"/></linearGradient></defs>
+      <rect x="6" y="28" width="8" height="14" rx="1.5" fill="url(#g)"/>
+      <rect x="20" y="18" width="8" height="24" rx="1.5" fill="url(#g)"/>
+      <rect x="34" y="6" width="8" height="36" rx="1.5" fill="url(#g)"/>
+    </svg>
+    <span><b>Boosted</b><span>Company</span></span>
+  </div>
+  <h1>La console del salone:<br>cosa provare e <em>cosa deve succedere</em></h1>
+  <p class="lead">Ogni riga è un gesto solo, con il risultato che ti deve tornare indietro.
+    Se una riga non torna, <b>quello è un difetto</b>: segnalo e non passare oltre — è il modo
+    in cui stasera ne sono venuti fuori nove che nessuno vedeva.</p>
+
+  <div class="apri">
+    <div class="k">Come si apre</div>
+    Doppio clic su <code>demo-parrucchiere.html</code>. Nessun server, nessuna rete: la demo
+    vive tutta nel browser e si ricorda le cose fra un'apertura e l'altra.
+    <div>
+      <span class="pin">PIN titolare <b>1379</b></span>
+      <span class="pin">ripartire da zero: <b>Impostazioni → Azzera</b></span>
+    </div>
+  </div>
+</header>
+
+<section>
+  <h2><span class="n">01</span> Il cliente prenota</h2>
+  <p class="sotto">È la parte che il cliente vede davvero. Si prova dalla vista «Cliente · prenota».</p>
+  <div class="tab"><table>
+    <tr><th>#</th><th>Cosa fai</th><th class="att">Cosa deve succedere</th></tr>
+    <tr><td>1.1</td><td>Scegli due servizi di categorie diverse</td><td class="att">Durata e prezzo si sommano da soli e restano visibili mentre scorri</td></tr>
+    <tr><td>1.2</td><td>Lascia l'operatore su «indifferente» e guarda gli orari</td><td class="att">Escono solo gli slot in cui almeno un operatore è davvero libero per quella durata</td></tr>
+    <tr><td>1.3</td><td>Scegli un operatore preciso</td><td class="att">Gli orari si restringono a quelli suoi. Se non ne resta nessuno lo dice, non lascia la griglia vuota</td></tr>
+    <tr><td>1.4</td><td>Conferma</td><td class="att">Schermata di conferma con giorno, ora e operatore, e l'avviso che il promemoria arriva su WhatsApp il giorno prima</td></tr>
+    <tr><td>1.5</td><td>Vai in Agenda</td><td class="att">L'appuntamento è lì, nella colonna dell'operatore giusto, all'ora giusta</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <h2><span class="n">02</span> La sala: agenda, poltrone, clienti</h2>
+  <p class="sotto">Quello che tocca chi lavora. Nessun PIN: è il loro strumento.</p>
+  <div class="tab"><table>
+    <tr><th>#</th><th>Cosa fai</th><th class="att">Cosa deve succedere</th></tr>
+    <tr><td>2.1</td><td>In Agenda, sposta un appuntamento con le frecce del giorno</td><td class="att">Si arriva fino a due settimane avanti; la data scritta accanto cambia di conseguenza</td></tr>
+    <tr><td>2.2</td><td>Segna un appuntamento come arrivato</td><td class="att">Passa in «Poltrone», e il contatore sulla scheda si aggiorna</td></tr>
+    <tr><td>2.3</td><td>Concludi il servizio</td><td class="att">Compare nel riquadro «Da incassare» con il conto già composto</td></tr>
+    <tr><td>2.4</td><td>Batti il conto (contanti o carta), aggiungi una mancia</td><td class="att">L'incasso entra nella giornata. ⚠️ Deve entrare nel giorno del <b>servizio</b>, non in quello in cui premi</td></tr>
+    <tr><td>2.5</td><td>Metti qualcuno in coda walk-in e lascialo lì un minuto</td><td class="att">L'attesa si conta in minuti e cresce da sola. Non deve mai comparire scritto «NaN»</td></tr>
+    <tr><td>2.6</td><td>Apri la scheda di un cliente</td><td class="att">Storico dei servizi, formula colore e note. È la scheda che il parrucchiere apre davanti allo specchio</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <h2><span class="n">03</span> 🔴 Il gestionale è del titolare — la prova che conta</h2>
+  <p class="sotto">Questa sezione è nata da un difetto vero: il PIN si scavalcava partendo dalla
+    demo guidata, e da lì si arrivava alla rubrica con email e telefoni in chiaro. Provale tutte.</p>
+  <div class="tab"><table>
+    <tr><th>#</th><th>Cosa fai</th><th class="att">Cosa deve succedere</th></tr>
+    <tr><td>3.1</td><td>Da una vista di sala, premi «Gestionale»</td><td class="att">Chiede il PIN. Niente numeri, niente listino, niente contatti prima di averlo dato</td></tr>
+    <tr><td>3.2</td><td>Sbaglia il PIN</td><td class="att">Errore scritto lì sotto, e si resta fuori. Nessuna finestra di sistema</td></tr>
+    <tr><td>3.3</td><td>Metti <span class="mono">1379</span></td><td class="att">Entra, e ci resta anche cambiando vista e tornando indietro. Una volta per sessione</td></tr>
+    <tr><td>3.4</td><td>🔴 Chiudi tutto, riapri, e <b>fai partire la demo guidata senza dare il PIN</b>. Aspetta il passo del Marketing e premi Esc</td><td class="att">Si torna fuori. Non si deve restare dentro al Marketing, e la rubrica non deve comparire</td></tr>
+    <tr><td>3.5</td><td>Senza PIN, guarda la prima schermata</td><td class="att">«Incassato oggi» non mostra una cifra: mostra un trattino</td></tr>
+    <tr><td>3.6</td><td>Senza PIN, prova ad aprire il Marketing e a premere i suoi tab</td><td class="att">Resta chiuso da ogni strada, non solo dal pulsante principale</td></tr>
+  </table></div>
+  <div class="nota rossa">
+    <span class="t">Perché insisto su questa</span>
+    Il cancello si appoggia allo <b>stato</b>, non al colore: se qualcuno togliesse a mano la
+    classe che nasconde le sezioni, i dati non devono ricomparire lo stesso. È così che era
+    stato aggirato la prima volta.
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">04</span> I soldi: devono tornare da ogni parte li guardi</h2>
+  <p class="sotto">Un numero che cambia a seconda di dove lo leggi è il difetto più insidioso:
+    non dà errore, dà una cifra sbagliata a chi decide.</p>
+  <div class="tab"><table>
+    <tr><th>#</th><th>Cosa fai</th><th class="att">Cosa deve succedere</th></tr>
+    <tr><td>4.1</td><td>Confronta «Incassato oggi» in prima pagina, in «Oggi» e nel Gestionale</td><td class="att">Stessa cifra in tutti e tre. Sempre</td></tr>
+    <tr><td>4.2</td><td>Guarda i quattro periodi: giorno, 7 giorni, 30 giorni, tutto</td><td class="att">Devono contenersi l'uno nell'altro. «Tutto» non può essere minore di «30 giorni»</td></tr>
+    <tr><td>4.3</td><td>Lascia un conto aperto e guarda la chiusura Z</td><td class="att">Separa <b>in cassa</b> da <b>ancora da battere</b>. Non chiama «incasso» quello che non è stato battuto</td></tr>
+    <tr><td>4.4</td><td>Batti oggi un conto rimasto aperto da ieri</td><td class="att">La cifra resta nel giorno di <b>ieri</b>: è lì che il lavoro è stato fatto. La Z di oggi non si gonfia</td></tr>
+    <tr><td>4.5</td><td>Confronta il «servizio medio» fra la vista Oggi e il Gestionale</td><td class="att">Stesso numero</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <h2><span class="n">05</span> L'export Excel</h2>
+  <p class="sotto">Un file che si apre male davanti al cliente è la figura peggiore. Va aperto
+    davvero, non guardato di sfuggita.</p>
+  <div class="tab"><table>
+    <tr><th>#</th><th>Cosa fai</th><th class="att">Cosa deve succedere</th></tr>
+    <tr><td>5.1</td><td>Gestionale → Incassi → «Scarica in Excel»</td><td class="att">Scarica un file <span class="mono">.xlsx</span></td></tr>
+    <tr><td>5.2</td><td>Aprilo con Excel, non con l'anteprima</td><td class="att">Si apre senza avvisi di file danneggiato</td></tr>
+    <tr><td>5.3</td><td>Guarda il totale del foglio</td><td class="att">Combacia con la cifra che vedevi a schermo per lo stesso periodo</td></tr>
+    <tr><td>5.4</td><td>Cambia periodo e riscarica</td><td class="att">Il foglio segue il periodo scelto, e torna a combaciare</td></tr>
+    <tr><td>5.5</td><td>Controlla che le colonne si leggano</td><td class="att">Nessuna colonna mostra <span class="mono">######</span> al posto del numero</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <h2><span class="n">06</span> Sul telefono</h2>
+  <p class="sotto">La demo si mostra spesso da un telefono, in piedi, davanti al cliente.</p>
+  <div class="tab"><table>
+    <tr><th>#</th><th>Cosa fai</th><th class="att">Cosa deve succedere</th></tr>
+    <tr><td>6.1</td><td>Apri la pagina da telefono e gira tutte le viste</td><td class="att">Non si scorre mai in orizzontale</td></tr>
+    <tr><td>6.2</td><td>Guarda «Cosa devo sistemare»</td><td class="att">Ogni voce ha ancora il suo link a dove si sistema: non sparisce per far posto</td></tr>
+    <tr><td>6.3</td><td>Apri la griglia degli orari e la scheda cliente</td><td class="att">Nomi e servizi si leggono per intero, non troncati in una lettera</td></tr>
+    <tr><td>6.4</td><td>Prova il gate del PIN</td><td class="att">Il riquadro sta al centro e la tastiera non lo copre</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <h2><span class="n">07</span> Cose che NON devono esserci</h2>
+  <div class="tab"><table>
+    <tr><th>#</th><th>Cosa guardi</th><th class="att">Perché</th></tr>
+    <tr><td>7.1</td><td>La <b>prova look</b> non c'è, da nessuna parte</td><td class="att">Mandava la foto del viso del cliente a un servizio negli Stati Uniti. È fuori, e non si rimette senza fornitore europeo, consenso esplicito e la voce nell'informativa</td></tr>
+    <tr><td>7.2</td><td>Nessuna emoji usata come icona</td><td class="att">Cambiano forma su ogni sistema e non seguono il tema</td></tr>
+    <tr><td>7.3</td><td>Nessun errore rosso nella console del browser (F12)</td><td class="att">Un errore lì dentro vuol dire che una parte della pagina ha smesso di funzionare in silenzio</td></tr>
+    <tr><td>7.4</td><td>Nessun numero scritto <span class="mono">NaN</span> o <span class="mono">undefined</span></td><td class="att">È il segno di un conto fatto su un dato che non c'era</td></tr>
+  </table></div>
+  <div class="nota lilla">
+    <span class="t">I due cloni</span>
+    La demo del salone vive in <b>due copie gemelle</b> che in passato hanno preso strade
+    diverse. Quando trovi un difetto, va corretto in tutte e due — e riprovato in tutte e due.
+    Se una prova ti torna in una copia e non nell'altra, quello è già un difetto.
+  </div>
+</section>
+
+<p class="piede">
+  Le righe di questa pagina nascono da difetti veri, non da un elenco immaginato: ognuna è
+  qualcosa che una volta non funzionava.<br><b>We boost. Boldly.</b>
+</p>
+
+</div>
+</body>
+</html>

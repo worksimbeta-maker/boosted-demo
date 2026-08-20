@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Area titolare — Salone Boosted</title>
+<meta name="robots" content="noindex,nofollow">
+<!-- ══════════════════════════════════════════════════════════════════════════════════
+     AREA TITOLARE — la porta, non la stanza.  (19 agosto 2026)
+
+     Perche' esiste questa pagina: la console di sala e quella del titolare sono due
+     lavori diversi, fatti da persone diverse, spesso sullo stesso tablet. Tenerle allo
+     stesso indirizzo vuol dire che chi sta al banco vede comunque le voci di menu degli
+     incassi e della rubrica. Qui l'indirizzo e' un altro: la sala apre
+     demo-parrucchiere.html e le tre voci del titolare non le ha proprio nel menu.
+
+     DA DIRE AL CLIENTE, SEMPRE: questo e' un cancello di ACCESSO, non una serratura.
+     Il PIN sta scritto nel codice di questa pagina, e chi apre il sorgente lo legge. Nelle
+     installazioni vere (ristorante, negozio) il PIN lo controlla il SERVER, che e' l'unico
+     posto dove un controllo vale qualcosa. Qui e' una demo che gira da un file.
+     ══════════════════════════════════════════════════════════════════════════════════ -->
+<style>
+/* Inter servito da noi: nessuna richiesta a Google, cosi' l'IP di chi apre la pagina non
+   finisce a un terzo. Stessi due file della console, stessa cartella. */
+@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latinext.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;}
+
+:root{
+  color-scheme:dark;
+  --bg:#0d0e12; --card:#16171C; --line:#2a2b31;
+  --off:#F7F8F8; --mute:#9a93a8;
+  --lilac:#C9A9E9;
+  --danger:#E24B4A; --danger-ink:#F0706D;
+  /* Il primario pieno, lo STESSO dei tre prodotti: --purple scurito finche' il bianco ci
+     sta sopra a norma (bianco su #8B6FB8 fa 4.15, su #7A5BAC fa 5.36). */
+  --purple-aa:#7A5BAC; --purple-aa-hi:#8568B3;
+  --r:16px; --r-sm:11px;
+  --t-base:.18s; --ease:cubic-bezier(.2,.7,.3,1);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:'Inter',-apple-system,system-ui,'Segoe UI',sans-serif;
+  font-size:14px;line-height:1.5;color:var(--off);
+  background:radial-gradient(900px 520px at 84% -8%,rgba(139,111,184,.16),transparent 60%),radial-gradient(700px 480px at -6% 4%,rgba(139,111,184,.18),transparent 55%),var(--bg);
+  min-height:100vh;-webkit-font-smoothing:antialiased;
+  display:grid;place-items:center;padding:24px;
+}
+/* Bordo O ombra, mai tutti e due: qui bordo. */
+.card{
+  width:100%;max-width:400px;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--r);padding:30px 26px;text-align:center;
+}
+.ico{line-height:0;margin-bottom:14px}
+.ico svg{width:30px;height:30px;stroke:var(--lilac);fill:none;stroke-width:1.8}
+.kick{font-size:11px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--mute);margin-bottom:6px}
+h1{font-size:21px;line-height:1.2;letter-spacing:-.2px;margin:0 0 8px}
+.sub{font-size:13px;color:var(--mute);line-height:1.6;margin:0 0 20px}
+.sub b{color:var(--off);font-weight:600}
+
+/* Il campo del PIN. type="password": quello che si digita non si legge da sopra la spalla,
+   e in salone c'e' quasi sempre qualcuno seduto dietro. inputmode numerico per avere il
+   tastierino sul telefono, autocomplete off perche' il browser non lo proponga a chi viene
+   dopo. Le cifre sono in tabular-nums: cosi' i pallini non ballano mentre si scrive. */
+.pin{
+  width:100%;min-height:56px;background:var(--bg);border:1px solid var(--line);
+  border-radius:var(--r-sm);color:var(--off);
+  font-size:26px;font-weight:800;letter-spacing:12px;text-align:center;
+  font-variant-numeric:tabular-nums;padding:0 12px;
+  transition:border-color var(--t-base) var(--ease);
+}
+.pin::placeholder{color:var(--mute);letter-spacing:10px}
+.pin:focus{outline:none;border-color:var(--lilac)}
+.pin:focus-visible{outline:2px solid var(--lilac);outline-offset:2px}
+.pin[aria-invalid="true"]{border-color:var(--danger);background:rgba(226,75,74,.07)}
+.pin[aria-invalid="true"]:focus-visible{outline-color:var(--danger)}
+
+/* L'errore sta scritto sotto il campo e sparisce appena riscrivi: niente alert(), che
+   ferma la pagina e va chiuso prima di poter correggere. */
+.err{display:none;color:var(--danger-ink);font-size:13px;margin-top:8px;text-align:left}
+.err.on{display:block}
+
+.btn{
+  display:flex;width:100%;align-items:center;justify-content:center;gap:8px;
+  min-height:48px;margin-top:14px;border:none;border-radius:var(--r-sm);
+  background:var(--purple-aa);color:#fff;font:inherit;font-weight:800;font-size:14px;
+  cursor:pointer;transition:background var(--t-base) var(--ease);
+}
+.btn:hover{background:var(--purple-aa-hi)}
+.btn:active{transform:translateY(1px)}
+.btn:focus-visible{outline:2px solid var(--lilac);outline-offset:2px}
+
+.torna{display:inline-flex;align-items:center;justify-content:center;min-height:44px;margin-top:16px;
+  font-size:13px;font-weight:700;color:var(--lilac);text-decoration:none}
+.torna:hover{text-decoration:underline}
+.torna:focus-visible{outline:2px solid var(--lilac);outline-offset:2px;border-radius:8px}
+
+.foot{margin-top:20px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--mute);line-height:1.6}
+.foot b{color:var(--off)}
+.foot .avviso{display:block;margin-top:8px;font-size:11.5px}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  .btn:active{transform:none}
+}
+</style>
+</head>
+<body>
+
+<main class="card">
+  <div class="ico" aria-hidden="true">
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10.5" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>
+  </div>
+  <div class="kick">Salone Boosted</div>
+  <h1 id="tit">Area titolare</h1>
+  <p class="sub">Qui dentro ci sono <b>incassi</b>, <b>listino</b> e le <b>campagne</b> con la rubrica dei clienti. È la parte del titolare: la sala lavora dall'altra pagina e non le vede nemmeno nel menu.</p>
+
+  <input id="pin" class="pin" type="password" inputmode="numeric" autocomplete="off"
+         maxlength="8" placeholder="••••" aria-labelledby="tit" aria-describedby="err">
+  <span class="err" id="err" role="alert">PIN sbagliato. Riprova.</span>
+
+  <button type="button" class="btn" id="entra">Entra</button>
+
+  <a class="torna" href="demo-parrucchiere.html">Torna alla console di sala</a>
+
+  <div class="foot">
+    PIN di questa demo: <b>1379</b>. Nelle installazioni vere è un altro, e lo scegli tu.
+    <span class="avviso">In una demo che gira da un file il PIN sta nel codice della pagina: è un cancello, non una serratura. Nel ristorante e nel negozio lo controlla il server.</span>
+  </div>
+</main>
+
+<script>
+(function(){
+  'use strict';
+  // Gli stessi due valori della console: se cambiano li', vanno cambiati qui.
+  var PIN_TITOLARE = '1379';
+  var SESSKEY = 'boosted-parr-titolare';
+
+  var inp = document.getElementById('pin');
+  var btn = document.getElementById('entra');
+  var err = document.getElementById('err');
+
+  function sbagliato(){
+    err.classList.add('on');
+    inp.setAttribute('aria-invalid','true');
+    inp.select();
+  }
+  function pulisci(){
+    err.classList.remove('on');
+    inp.removeAttribute('aria-invalid');
+  }
+
+  function entra(){
+    if (inp.value.trim() !== PIN_TITOLARE) { sbagliato(); return; }
+    // La console legge questa chiave e apre l'area senza richiedere il PIN una seconda
+    // volta. Se il browser nega sessionStorage (succede aprendo da file://), non e' un
+    // guasto: si va avanti lo stesso e sara' la console a richiederlo. Meglio un PIN in
+    // piu' che una porta che resta aperta.
+    try { sessionStorage.setItem(SESSKEY, '1'); } catch (e) {}
+    location.href = 'demo-parrucchiere.html?vista=oggi';
+  }
+
+  inp.addEventListener('input', pulisci);
+  inp.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); entra(); } });
+  btn.addEventListener('click', entra);
+  try { inp.focus(); } catch (e) {}
+})();
+</script>
+</body>
+</html>
